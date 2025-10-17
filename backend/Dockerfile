@@ -16,10 +16,7 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 COPY pyproject.toml uv.lock ./
 
-RUN --mount=type=ssh \
-    mkdir -p -m 700 /root/.ssh \
- && ssh-keyscan gitlab.bmstu.ru >> /root/.ssh/known_hosts \
- && uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev
 
 COPY . .
 
