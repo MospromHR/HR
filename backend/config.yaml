@@ -6,10 +6,6 @@ postgres:
   username: user
   password: pass
   debug: true
-redis:
-  host: localhost
-  port: 6379
-  db: 0
 security:
   jwt_secret: change-me
   access_token_expire_minutes: 60

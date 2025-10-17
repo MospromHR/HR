@@ -3,12 +3,6 @@ from pydantic import BaseModel, EmailStr, Field
 from database.schema.base import UserRole
 
 
-class RedisConfig(BaseModel):
-    host: str = "localhost"
-    port: int = 6379
-    db: int = 0
-
-
 class PostgresConfig(BaseModel):
     host: str = "localhost"
     port: int = 5432
@@ -24,7 +18,7 @@ class SecurityConfig(BaseModel):
 
 
 class SuperUserConfig(BaseModel):
-    email: EmailStr = EmailStr("admin@example.com")
+    email: EmailStr = "admin@example.com"
     password: str = Field("admin123", min_length=1)
     role: UserRole = UserRole.COMPANY
 
@@ -32,6 +26,5 @@ class SuperUserConfig(BaseModel):
 class Config(BaseModel):
     env: str = "dev"  # dev/stage/prod
     postgres: PostgresConfig = PostgresConfig()
-    redis: RedisConfig = RedisConfig()
     security: SecurityConfig = SecurityConfig()
     superuser: SuperUserConfig = SuperUserConfig()
