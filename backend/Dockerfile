@@ -1,10 +1,5 @@
 FROM python:3.12-slim-trixie AS build
 
-ARG GIT_HOST
-ARG GIT_USER
-ARG GIT_PASS
-
-RUN echo "machine ${GIT_HOST} login ${GIT_USER} password ${GIT_PASS}" >> ~/.netrc
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git openssh-client ca-certificates build-essential \
