@@ -54,7 +54,7 @@ async def get_current_superuser(user: User = Depends(get_current_user)) -> User:
 
 def require_role(role: UserRole) -> Callable[[User], User]:
     async def dependency(user: User = Depends(get_current_user)) -> User:
-        if user.is_superuser or user.role == role:
+        if user.role == role:
             return user
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient rights")
 

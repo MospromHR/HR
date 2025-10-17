@@ -47,14 +47,15 @@ def verify_password(password: str, hashed_password: str) -> bool:
     return hmac.compare_digest(_b64encode(derived), hashed_b64)
 
 
-def create_access_token(
-    payload: Dict[str, Any], *, secret: str, expires_delta: timedelta
+def _create_token(
+    payload: Dict[str, Any], *, secret: str, expires_delta: timedelta, token_type: str
 ) -> str:
     header = {"alg": "HS256", "typ": "JWT"}
     now = int(time.time())
     data = dict(payload)
     data["iat"] = now
     data["exp"] = now + int(expires_delta.total_seconds())
+    data["type"] = token_type
 
     header_segment = _b64encode(json.dumps(header, separators=(",", ":"), sort_keys=True).encode())
     payload_segment = _b64encode(json.dumps(data, separators=(",", ":"), sort_keys=True).encode())
@@ -66,7 +67,19 @@ def create_access_token(
     return "".join([header_segment, ".", payload_segment, ".", signature_segment])
 
 
-def decode_access_token(token: str, *, secret: str) -> Dict[str, Any]:
+def create_access_token(
+    payload: Dict[str, Any], *, secret: str, expires_delta: timedelta
+) -> str:
+    return _create_token(payload, secret=secret, expires_delta=expires_delta, token_type="access")
+
+
+def create_refresh_token(
+    payload: Dict[str, Any], *, secret: str, expires_delta: timedelta
+) -> str:
+    return _create_token(payload, secret=secret, expires_delta=expires_delta, token_type="refresh")
+
+
+def _decode_token(token: str, *, secret: str, expected_type: str) -> Dict[str, Any]:
     try:
         header_segment, payload_segment, signature_segment = token.split(".")
     except ValueError as exc:
@@ -90,13 +103,27 @@ def decode_access_token(token: str, *, secret: str) -> Dict[str, Any]:
     if exp is not None and int(exp) < int(time.time()):
         raise TokenError("Token has expired")
 
+    token_type = payload.get("type")
+    if token_type != expected_type:
+        raise TokenError("Invalid token type")
+
     return payload
+
+
+def decode_access_token(token: str, *, secret: str) -> Dict[str, Any]:
+    return _decode_token(token, secret=secret, expected_type="access")
+
+
+def decode_refresh_token(token: str, *, secret: str) -> Dict[str, Any]:
+    return _decode_token(token, secret=secret, expected_type="refresh")
 
 
 __all__ = [
     "TokenError",
     "create_access_token",
+    "create_refresh_token",
     "decode_access_token",
+    "decode_refresh_token",
     "hash_password",
     "verify_password",
 ]
