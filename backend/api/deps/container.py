@@ -1,12 +1,17 @@
 from fastapi import Request
 from ss.postgres import PostgresProvider
 
+from config import Config
+
+
 class Container:
-    def __init__(self, db: PostgresProvider):
+    def __init__(self, db: PostgresProvider, config: Config):
         self.db = db
-        
-    def dispose(self):
+        self.config = config
+
+    def dispose(self) -> None:
         self.db.dispose()
-        
-async def get_container(request: Request) -> Container:
+
+
+async def get_container(request: Request) -> "Container":
     return request.app.state.container

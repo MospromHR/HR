@@ -1,13 +1,12 @@
 from dataclasses import dataclass
-from typing import List
 import enum
 from datetime import datetime
 from uuid import UUID as UUID_t, uuid4
 
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 import sqlalchemy as sa
-from sqlalchemy.types import DateTime
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.types import DateTime
 
 
 naming_convention = {
@@ -22,8 +21,30 @@ naming_convention = {
 class Base(DeclarativeBase):
     metadata = sa.MetaData(naming_convention=naming_convention)
 
+
+class UserRole(enum.StrEnum):
+    APPLICANT = "applicant"
+    COMPANY = "company"
+    EDUCATION = "education"
+
+
 @dataclass
-class Example(Base):
-    __tablename__ = "examples"
-    id: Mapped[int] = mapped_column(sa.BigInteger, primary_key=True, autoincrement=True)
-    filed: Mapped[str] = mapped_column(nullable=False)
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    email: Mapped[str] = mapped_column(sa.String(320), unique=True, nullable=False, index=True)
+    hashed_password: Mapped[str] = mapped_column(sa.String(512), nullable=False)
+    role: Mapped[UserRole] = mapped_column(sa.Enum(UserRole, name="user_role"), nullable=False)
+    is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
+    is_superuser: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False
+    )
