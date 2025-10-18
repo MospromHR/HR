@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import UUID as UUID_t, uuid4
 
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import DateTime
 
@@ -43,6 +43,89 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(sa.Enum(UserRole, name="user_role"), nullable=False)
     is_active: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
     is_superuser: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False
+    )
+
+
+@dataclass
+class ApplicantProfile(Base):
+    __tablename__ = "applicant_profiles"
+
+    id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    user_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    first_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    middle_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    bio: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    contacts: Mapped[dict[str, str] | None] = mapped_column(JSONB, nullable=True)
+    avatar_url: Mapped[str | None] = mapped_column(sa.String(1024), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False
+    )
+
+
+@dataclass
+class CompanyProfile(Base):
+    __tablename__ = "company_profiles"
+
+    id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    user_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    company_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    description: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    contacts: Mapped[dict[str, str] | None] = mapped_column(JSONB, nullable=True)
+    logo_url: Mapped[str | None] = mapped_column(sa.String(1024), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False
+    )
+
+
+@dataclass
+class EducationProfile(Base):
+    __tablename__ = "education_profiles"
+
+    id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    user_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    organization_name: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    description: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    contacts: Mapped[dict[str, str] | None] = mapped_column(JSONB, nullable=True)
+    logo_url: Mapped[str | None] = mapped_column(sa.String(1024), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=sa.func.now(), nullable=False
     )
