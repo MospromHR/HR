@@ -299,6 +299,7 @@ def _create_internships(
         return f"{faker.random_int(10, 99)}.{faker.random_int(10, 99)}.{faker.random_int(100, 999)}"
 
     now = datetime.now(timezone.utc)
+    code_values: set[str] = set()
     internships: list[EducationInternship] = []
     for idx in range(target):
         education_user = education_users[idx % len(education_users)]
