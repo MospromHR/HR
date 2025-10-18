@@ -3,7 +3,16 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 import sqlalchemy as sa
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Response,
+    UploadFile,
+    status,
+)
 from sqlalchemy.orm import Session
 from uuid import UUID
 
@@ -19,10 +28,16 @@ from api.schemas.profile import (
     ApplicantProfileUpdate,
     MediaUploadResponse,
 )
+from api.schemas.vacancy import (
+    ApplicantVacancyApplicationListResponse,
+    ApplicantVacancyApplicationResponse,
+    VacancyResponse,
+)
 from api.schemas.user import RoleResponse
 from config import Config
 from database.schema.base import (
     ApplicantProfile,
+    CompanyVacancy,
     EducationInternship,
     EducationInternshipCode,
     EducationInternshipMember,
@@ -30,6 +45,9 @@ from database.schema.base import (
     InternshipParticipantStatus,
     User,
     UserRole,
+    VacancyApplication,
+    VacancyApplicationStatus,
+    VacancyStatus,
 )
 
 from ._media import save_media_file
@@ -53,6 +71,32 @@ def _serialize_membership(
         created_at=member.created_at,
         updated_at=member.updated_at,
         internship=EducationInternshipResponse.model_validate(internship),
+    )
+
+
+def _get_available_vacancy(db: Session, vacancy_id: UUID) -> CompanyVacancy:
+    stmt = sa.select(CompanyVacancy).where(
+        CompanyVacancy.id == vacancy_id,
+        CompanyVacancy.status == VacancyStatus.PUBLISHED,
+    )
+    vacancy = db.scalar(stmt)
+    if vacancy is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vacancy is not available")
+    return vacancy
+
+
+def _serialize_applicant_application(
+    application: VacancyApplication,
+    vacancy: CompanyVacancy,
+) -> ApplicantVacancyApplicationResponse:
+    return ApplicantVacancyApplicationResponse(
+        id=application.id,
+        vacancy_id=application.vacancy_id,
+        applicant_id=application.user_id,
+        status=application.status,
+        created_at=application.created_at,
+        updated_at=application.updated_at,
+        vacancy=VacancyResponse.model_validate(vacancy),
     )
 
 
@@ -225,3 +269,119 @@ async def leave_internship(
     db.delete(membership)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/applicant/vacancies/applications",
+    response_model=ApplicantVacancyApplicationListResponse,
+)
+async def list_vacancy_applications(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    status_filter: VacancyApplicationStatus | None = Query(
+        None, alias="status", description="Filter applications by status"
+    ),
+    user: User = Depends(require_role(UserRole.APPLICANT)),
+    db: Session = Depends(get_db),
+) -> ApplicantVacancyApplicationListResponse:
+    filters: list[sa.ColumnElement[bool]] = [VacancyApplication.user_id == user.id]
+    if status_filter is not None:
+        filters.append(VacancyApplication.status == status_filter)
+
+    total_stmt = sa.select(sa.func.count()).select_from(VacancyApplication).where(*filters)
+    total = db.scalar(total_stmt) or 0
+
+    stmt = (
+        sa.select(VacancyApplication, CompanyVacancy)
+        .join(CompanyVacancy, CompanyVacancy.id == VacancyApplication.vacancy_id)
+        .where(*filters)
+        .order_by(VacancyApplication.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    rows = db.execute(stmt).all()
+    items = [
+        _serialize_applicant_application(application, vacancy)
+        for application, vacancy in rows
+    ]
+
+    return ApplicantVacancyApplicationListResponse(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.post(
+    "/applicant/vacancies/{vacancy_id}/applications",
+    response_model=ApplicantVacancyApplicationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def apply_for_vacancy(
+    vacancy_id: UUID,
+    user: User = Depends(require_role(UserRole.APPLICANT)),
+    db: Session = Depends(get_db),
+) -> ApplicantVacancyApplicationResponse:
+    vacancy = _get_available_vacancy(db, vacancy_id)
+    stmt = sa.select(VacancyApplication).where(
+        VacancyApplication.vacancy_id == vacancy.id,
+        VacancyApplication.user_id == user.id,
+    )
+    application = db.scalar(stmt)
+
+    if application is None:
+        application = VacancyApplication(
+            vacancy_id=vacancy.id,
+            user_id=user.id,
+            status=VacancyApplicationStatus.PENDING,
+        )
+    else:
+        if application.status != VacancyApplicationStatus.CANCELLED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You have already applied to this vacancy",
+            )
+        application.status = VacancyApplicationStatus.PENDING
+
+    db.add(application)
+    db.commit()
+    db.refresh(application)
+    return _serialize_applicant_application(application, vacancy)
+
+
+@router.post(
+    "/applicant/vacancies/{vacancy_id}/applications/cancel",
+    response_model=ApplicantVacancyApplicationResponse,
+)
+async def cancel_vacancy_application(
+    vacancy_id: UUID,
+    user: User = Depends(require_role(UserRole.APPLICANT)),
+    db: Session = Depends(get_db),
+) -> ApplicantVacancyApplicationResponse:
+    stmt = (
+        sa.select(VacancyApplication, CompanyVacancy)
+        .join(CompanyVacancy, CompanyVacancy.id == VacancyApplication.vacancy_id)
+        .where(
+            VacancyApplication.vacancy_id == vacancy_id,
+            VacancyApplication.user_id == user.id,
+        )
+    )
+    row = db.execute(stmt).first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+
+    application, vacancy = row
+    if application.status == VacancyApplicationStatus.REJECTED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Application has already been reviewed",
+        )
+
+    if application.status != VacancyApplicationStatus.CANCELLED:
+        application.status = VacancyApplicationStatus.CANCELLED
+        db.add(application)
+        db.commit()
+        db.refresh(application)
+
+    return _serialize_applicant_application(application, vacancy)

@@ -19,12 +19,17 @@ from database.schema.base import (
     CompanyVacancy,
     EducationInternship,
     EducationInternshipCode,
+    EducationInternshipEngagement,
     EducationInternshipMember,
     EducationInternshipStatus,
     EducationProfile,
+    InternshipEngagementInitiator,
+    InternshipEngagementStatus,
     InternshipParticipantStatus,
     User,
     UserRole,
+    VacancyApplication,
+    VacancyApplicationStatus,
     VacancyStatus,
 )
 from ss.postgres import PostgresProvider
@@ -229,14 +234,14 @@ def _create_vacancies(
     *,
     company_users: Iterable[User],
     target: int,
-) -> None:
+) -> list[CompanyVacancy]:
     company_users = list(company_users)
     if not company_users:
         logger.info("Skipping vacancy generation - no company users found")
-        return
+        return []
 
     city_cache: list[str] = []
-    code_values: set[str] = set()
+    vacancies: list[CompanyVacancy] = []
 
     for idx in range(target):
         company_user = company_users[idx % len(company_users)]
@@ -277,6 +282,10 @@ def _create_vacancies(
             status=VacancyStatus.PUBLISHED,
         )
         session.add(vacancy)
+        session.flush()
+        vacancies.append(vacancy)
+
+    return vacancies
 
 
 def _create_internships(
@@ -286,11 +295,11 @@ def _create_internships(
     education_users: Iterable[User],
     applicant_users: list[User],
     target: int,
-) -> None:
+) -> list[EducationInternship]:
     education_users = list(education_users)
     if not education_users:
         logger.info("Skipping internship generation - no education users found")
-        return
+        return []
 
     if not applicant_users:
         logger.info("Skipping internship members - no applicant users found")
@@ -344,7 +353,7 @@ def _create_internships(
             session.add(code_row)
 
     if not applicant_users:
-        return
+        return internships
 
     for internship in internships:
         members = random.sample(
@@ -363,6 +372,83 @@ def _create_internships(
                 ),
             )
             session.add(member)
+
+    return internships
+
+
+def _create_vacancy_applications(
+    session: Session,
+    *,
+    vacancies: Iterable[CompanyVacancy],
+    applicant_users: list[User],
+) -> None:
+    vacancy_list = list(vacancies)
+    if not vacancy_list or not applicant_users:
+        logger.info("Skipping vacancy applications generation - missing data")
+        return
+
+    for vacancy in vacancy_list:
+        total_applications = random.randint(1, min(5, len(applicant_users)))
+        selected_applicants = random.sample(applicant_users, total_applications)
+        for idx, applicant in enumerate(selected_applicants):
+            if idx == 0:
+                status = VacancyApplicationStatus.PENDING
+            else:
+                status = random.choice(
+                    [
+                        VacancyApplicationStatus.PENDING,
+                        VacancyApplicationStatus.APPROVED,
+                        VacancyApplicationStatus.REJECTED,
+                        VacancyApplicationStatus.CANCELLED,
+                    ]
+                )
+            application = VacancyApplication(
+                vacancy_id=vacancy.id,
+                user_id=applicant.id,
+                status=status,
+            )
+            session.add(application)
+
+
+def _create_internship_engagements(
+    session: Session,
+    *,
+    internships: Iterable[EducationInternship],
+    company_users: list[User],
+) -> None:
+    internship_list = list(internships)
+    if not internship_list or not company_users:
+        logger.info("Skipping internship engagements generation - missing data")
+        return
+
+    for internship in internship_list:
+        total_engagements = random.randint(1, min(4, len(company_users)))
+        selected_companies = random.sample(company_users, total_engagements)
+        for idx, company in enumerate(selected_companies):
+            initiator = random.choice(
+                [
+                    InternshipEngagementInitiator.EDUCATION,
+                    InternshipEngagementInitiator.COMPANY,
+                ]
+            )
+            if idx == 0:
+                status = InternshipEngagementStatus.PENDING
+            else:
+                status = random.choice(
+                    [
+                        InternshipEngagementStatus.PENDING,
+                        InternshipEngagementStatus.APPROVED,
+                        InternshipEngagementStatus.REJECTED,
+                        InternshipEngagementStatus.CANCELLED,
+                    ]
+                )
+            engagement = EducationInternshipEngagement(
+                internship_id=internship.id,
+                company_id=company.id,
+                initiator=initiator,
+                status=status,
+            )
+            session.add(engagement)
 
 
 def seed_demo_data(pg: PostgresProvider, *, reserved_emails: Iterable[str] | None = None) -> None:
@@ -457,13 +543,26 @@ def seed_demo_data(pg: PostgresProvider, *, reserved_emails: Iterable[str] | Non
                 )
             )
 
-        _create_vacancies(session, faker, company_users=company_users, target=TARGET_VACANCIES)
-        _create_internships(
+        vacancies = _create_vacancies(
+            session, faker, company_users=company_users, target=TARGET_VACANCIES
+        )
+        internships = _create_internships(
             session,
             faker,
             education_users=education_users,
             applicant_users=applicant_users,
             target=TARGET_INTERNSHIPS,
+        )
+
+        _create_vacancy_applications(
+            session,
+            vacancies=vacancies,
+            applicant_users=applicant_users,
+        )
+        _create_internship_engagements(
+            session,
+            internships=internships,
+            company_users=company_users,
         )
 
         logger.info(

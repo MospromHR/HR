@@ -5,9 +5,18 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from database.schema.base import EducationInternshipStatus, InternshipParticipantStatus
+from database.schema.base import (
+    EducationInternshipStatus,
+    InternshipEngagementInitiator,
+    InternshipEngagementStatus,
+    InternshipParticipantStatus,
+)
 
-from .profile import ApplicantProfileResponse
+from .profile import (
+    ApplicantProfileResponse,
+    CompanyProfileResponse,
+    EducationProfileResponse,
+)
 
 
 class EducationInternshipBase(BaseModel):
@@ -105,6 +114,48 @@ class EducationInternshipWithParticipantsResponse(EducationInternshipResponse):
 
 class EducationInternshipListResponse(BaseModel):
     items: list[EducationInternshipWithParticipantsResponse]
+    total: int
+    limit: int
+    offset: int
+
+
+class InternshipEngagementCreateRequest(BaseModel):
+    company_id: UUID = Field(validation_alias="companyId", serialization_alias="companyId")
+
+
+class InternshipEngagementResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    id: UUID
+    internship_id: UUID = Field(serialization_alias="internshipId")
+    company_id: UUID = Field(serialization_alias="companyId")
+    initiator: InternshipEngagementInitiator
+    status: InternshipEngagementStatus
+    created_at: datetime = Field(serialization_alias="createdAt")
+    updated_at: datetime = Field(serialization_alias="updatedAt")
+
+
+class EducationInternshipEngagementResponse(InternshipEngagementResponse):
+    company_email: str = Field(serialization_alias="companyEmail")
+    company_profile: CompanyProfileResponse | None = Field(
+        default=None,
+        serialization_alias="companyProfile",
+    )
+
+
+class CompanyInternshipEngagementResponse(InternshipEngagementResponse):
+    education_email: str = Field(serialization_alias="educationEmail")
+    education_profile: EducationProfileResponse | None = Field(
+        default=None,
+        serialization_alias="educationProfile",
+    )
+    internship: EducationInternshipResponse
+
+
+class InternshipEngagementListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    items: list[InternshipEngagementResponse]
     total: int
     limit: int
     offset: int

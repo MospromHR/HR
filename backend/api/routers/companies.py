@@ -10,15 +10,31 @@ from sqlalchemy.orm import Session
 from api.deps import get_config, get_db
 from api.deps.auth import require_role
 from api.schemas.profile import (
+    ApplicantProfileResponse,
     CompanyListResponse,
     CompanyProfileResponse,
     CompanyProfileUpdate,
     MediaUploadResponse,
 )
 from api.schemas.user import RoleResponse
-from api.schemas.vacancy import VacancyCreate, VacancyListResponse, VacancyResponse
+from api.schemas.vacancy import (
+    CompanyVacancyApplicationListResponse,
+    CompanyVacancyApplicationResponse,
+    VacancyCreate,
+    VacancyListResponse,
+    VacancyResponse,
+)
 from config import Config
-from database.schema.base import CompanyProfile, CompanyVacancy, User, UserRole, VacancyStatus
+from database.schema.base import (
+    ApplicantProfile,
+    CompanyProfile,
+    CompanyVacancy,
+    User,
+    UserRole,
+    VacancyApplication,
+    VacancyApplicationStatus,
+    VacancyStatus,
+)
 
 from ._media import save_media_file
 
@@ -167,6 +183,104 @@ def _change_vacancy_status(
     return vacancy
 
 
+def _serialize_company_application(
+    application: VacancyApplication,
+    vacancy: CompanyVacancy,
+    applicant_user: User,
+    profile: ApplicantProfile | None,
+) -> CompanyVacancyApplicationResponse:
+    return CompanyVacancyApplicationResponse(
+        id=application.id,
+        vacancy_id=application.vacancy_id,
+        applicant_id=application.user_id,
+        status=application.status,
+        created_at=application.created_at,
+        updated_at=application.updated_at,
+        applicant_email=applicant_user.email,
+        applicant_profile=(
+            ApplicantProfileResponse.model_validate(profile) if profile else None
+        ),
+        vacancy=VacancyResponse.model_validate(vacancy),
+    )
+
+
+def _get_vacancy_application_for_company(
+    db: Session,
+    company_id: UUID,
+    vacancy_id: UUID,
+    application_id: UUID,
+) -> tuple[VacancyApplication, CompanyVacancy, User, ApplicantProfile | None]:
+    stmt = (
+        sa.select(VacancyApplication, CompanyVacancy, User, ApplicantProfile)
+        .join(CompanyVacancy, CompanyVacancy.id == VacancyApplication.vacancy_id)
+        .join(User, User.id == VacancyApplication.user_id)
+        .join(
+            ApplicantProfile,
+            ApplicantProfile.user_id == User.id,
+            isouter=True,
+        )
+        .where(
+            CompanyVacancy.user_id == company_id,
+            CompanyVacancy.id == vacancy_id,
+            VacancyApplication.id == application_id,
+        )
+        .limit(1)
+    )
+    row = db.execute(stmt).first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+    return row
+
+
+def _list_company_applications(
+    db: Session,
+    company_id: UUID,
+    limit: int,
+    offset: int,
+    status_filter: VacancyApplicationStatus | None,
+    vacancy_id: UUID | None = None,
+) -> CompanyVacancyApplicationListResponse:
+    filters: list[sa.ColumnElement[bool]] = [CompanyVacancy.user_id == company_id]
+    if vacancy_id is not None:
+        filters.append(CompanyVacancy.id == vacancy_id)
+    if status_filter is not None:
+        filters.append(VacancyApplication.status == status_filter)
+
+    total_stmt = (
+        sa.select(sa.func.count())
+        .select_from(VacancyApplication)
+        .join(CompanyVacancy, CompanyVacancy.id == VacancyApplication.vacancy_id)
+        .where(*filters)
+    )
+    total = db.scalar(total_stmt) or 0
+
+    stmt = (
+        sa.select(VacancyApplication, CompanyVacancy, User, ApplicantProfile)
+        .join(CompanyVacancy, CompanyVacancy.id == VacancyApplication.vacancy_id)
+        .join(User, User.id == VacancyApplication.user_id)
+        .join(
+            ApplicantProfile,
+            ApplicantProfile.user_id == User.id,
+            isouter=True,
+        )
+        .where(*filters)
+        .order_by(VacancyApplication.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    rows = db.execute(stmt).all()
+    items = [
+        _serialize_company_application(application, vacancy, applicant_user, profile)
+        for application, vacancy, applicant_user, profile in rows
+    ]
+    return CompanyVacancyApplicationListResponse(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
 @me_router.post("/company/vacancies/{vacancy_id}/publish", response_model=VacancyResponse)
 async def publish_company_vacancy(
     vacancy_id: UUID,
@@ -228,6 +342,110 @@ async def delete_company_vacancy(
     db.delete(vacancy)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@me_router.get(
+    "/company/vacancies/applications",
+    response_model=CompanyVacancyApplicationListResponse,
+)
+async def list_company_applications(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    status_filter: VacancyApplicationStatus | None = Query(
+        None, alias="status", description="Filter applications by status"
+    ),
+    vacancy_id: UUID | None = Query(
+        None, description="Filter applications by specific vacancy"
+    ),
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+) -> CompanyVacancyApplicationListResponse:
+    return _list_company_applications(
+        db,
+        user.id,
+        limit,
+        offset,
+        status_filter,
+        vacancy_id,
+    )
+
+
+@me_router.get(
+    "/company/vacancies/{vacancy_id}/applications",
+    response_model=CompanyVacancyApplicationListResponse,
+)
+async def list_company_vacancy_applications(
+    vacancy_id: UUID,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    status_filter: VacancyApplicationStatus | None = Query(
+        None, alias="status", description="Filter applications by status"
+    ),
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+) -> CompanyVacancyApplicationListResponse:
+    _get_company_vacancy(db, user.id, vacancy_id)
+    return _list_company_applications(
+        db,
+        user.id,
+        limit,
+        offset,
+        status_filter,
+        vacancy_id,
+    )
+
+
+def _ensure_pending_application(application: VacancyApplication) -> None:
+    if application.status == VacancyApplicationStatus.CANCELLED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Application was cancelled")
+    if application.status == VacancyApplicationStatus.REJECTED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Application already rejected")
+    if application.status == VacancyApplicationStatus.APPROVED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Application already approved")
+    if application.status != VacancyApplicationStatus.PENDING:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Application is not pending")
+
+
+@me_router.post(
+    "/company/vacancies/{vacancy_id}/applications/{application_id}/approve",
+    response_model=CompanyVacancyApplicationResponse,
+)
+async def approve_vacancy_application(
+    vacancy_id: UUID,
+    application_id: UUID,
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+) -> CompanyVacancyApplicationResponse:
+    application, vacancy, applicant_user, profile = _get_vacancy_application_for_company(
+        db, user.id, vacancy_id, application_id
+    )
+    _ensure_pending_application(application)
+    application.status = VacancyApplicationStatus.APPROVED
+    db.add(application)
+    db.commit()
+    db.refresh(application)
+    return _serialize_company_application(application, vacancy, applicant_user, profile)
+
+
+@me_router.post(
+    "/company/vacancies/{vacancy_id}/applications/{application_id}/reject",
+    response_model=CompanyVacancyApplicationResponse,
+)
+async def reject_vacancy_application(
+    vacancy_id: UUID,
+    application_id: UUID,
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+) -> CompanyVacancyApplicationResponse:
+    application, vacancy, applicant_user, profile = _get_vacancy_application_for_company(
+        db, user.id, vacancy_id, application_id
+    )
+    _ensure_pending_application(application)
+    application.status = VacancyApplicationStatus.REJECTED
+    db.add(application)
+    db.commit()
+    db.refresh(application)
+    return _serialize_company_application(application, vacancy, applicant_user, profile)
 
 
 def _ensure_company_user(db: Session, company_id: UUID) -> User:
