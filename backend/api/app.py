@@ -1,7 +1,8 @@
-from contextlib import asynccontextmanager
-from pathlib import Path
 import logging
 import os
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from pathlib import Path
 
 import sqlalchemy as sa
 from fastapi import FastAPI
@@ -62,6 +63,8 @@ async def lifespan(app: FastAPI):
         env_path=Path.cwd() / ".env",
     ).as_object(Config)
     logger.info("Result config loaded:\n%s", cfg.model_dump_json(indent=4))
+
+    app.state.startup_time = datetime.now(timezone.utc)
 
     db = PostgresProvider(
         username=cfg.postgres.username,
