@@ -8,13 +8,25 @@ import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from api.deps import get_db
+from api.deps import get_db, get_stats_cache
 from api.deps.auth import get_current_superuser
+from api.schemas.analytics import AdminStatsResponse
 from api.schemas.user import UserResponse, UserUpdateRequest
+from api.services import SimpleTTLCache
+from api.services.analytics import get_admin_stats
 from database.schema.base import User, UserRole
 
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+
+
+@router.get("/stats", response_model=AdminStatsResponse)
+async def get_admin_stats_endpoint(
+    _: User = Depends(get_current_superuser),
+    db: Session = Depends(get_db),
+    cache: SimpleTTLCache[AdminStatsResponse] = Depends(get_stats_cache),
+) -> AdminStatsResponse:
+    return cache.get_or_set("admin-stats", lambda: get_admin_stats(db))
 
 
 @router.get("/users", response_model=list[UserResponse])

@@ -31,6 +31,10 @@ class StorageConfig(BaseModel):
     public_path_prefix: str = "backend-media"
 
 
+class AnalyticsConfig(BaseModel):
+    cache_ttl_seconds: int = Field(60, ge=0)
+
+
 class Config(BaseModel):
     env: str = "dev"  # dev/stage/prod
     demo_mode: bool = True
@@ -38,3 +42,4 @@ class Config(BaseModel):
     security: SecurityConfig = SecurityConfig()
     superuser: SuperUserConfig = SuperUserConfig()
     storage: StorageConfig = StorageConfig()
+    analytics: AnalyticsConfig = AnalyticsConfig()

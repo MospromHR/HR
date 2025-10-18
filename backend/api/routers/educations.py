@@ -5,10 +5,13 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from api.deps import get_config, get_db
+from api.deps import get_config, get_db, get_stats_cache
 from api.deps.auth import require_role
+from api.schemas.analytics import EducationStatsResponse
 from api.schemas.profile import EducationProfileResponse, EducationProfileUpdate, MediaUploadResponse
 from api.schemas.user import RoleResponse
+from api.services import SimpleTTLCache
+from api.services.analytics import get_education_stats
 from config import Config
 from database.schema.base import EducationProfile, User, UserRole
 
@@ -37,6 +40,16 @@ async def get_education_profile(
     if profile is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
     return profile
+
+
+@router.get("/education/stats", response_model=EducationStatsResponse)
+async def get_education_stats_endpoint(
+    user: User = Depends(require_role(UserRole.EDUCATION)),
+    db: Session = Depends(get_db),
+    cache: SimpleTTLCache[EducationStatsResponse] = Depends(get_stats_cache),
+) -> EducationStatsResponse:
+    cache_key = f"education-stats:{user.id}"
+    return cache.get_or_set(cache_key, lambda: get_education_stats(db, user.id))
 
 
 @router.put("/education/profile", response_model=EducationProfileResponse)
