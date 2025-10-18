@@ -1,18 +1,22 @@
 <div class="wrapper">
     @for (item of list(); track item) {
-
+        <profile-list-item class="list-item" [header]="item.title"
+                           [viewQuantity]="item.views"
+                           [responsesQuantity]="item.responses"
+                           [conversionPercentage]="item.conversion"
+        ></profile-list-item>
     } @empty {
-       <div class="empty">
-           <div class="star-circle">
-               <div class="star"></div>
-           </div>
-           <div class="text">
-               <h2>Найдите идеального сотрудника</h2>
-               <span>Создайте вакансию и найдите того самого</span>
-           </div>
-           <div>
-               <profile-button title="Создать вакансию" [isActive]="true"></profile-button>
-           </div>
-       </div>
+        <div class="empty">
+            <div class="star-circle">
+                <div class="star"></div>
+            </div>
+            <div class="text">
+                <h2>Найдите идеального сотрудника</h2>
+                <span>Создайте вакансию и найдите того самого</span>
+            </div>
+            <div>
+                <profile-button title="Создать вакансию" [isActive]="true"></profile-button>
+            </div>
+        </div>
     }
 </div>
