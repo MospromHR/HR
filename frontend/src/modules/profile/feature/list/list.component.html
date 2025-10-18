@@ -11,11 +11,19 @@
                 <div class="star"></div>
             </div>
             <div class="text">
-                <h2>Найдите идеального сотрудника</h2>
-                <span>Создайте вакансию и найдите того самого</span>
+                <ng-container *roleFeatureToggle="'company'">
+                    <h2>Найдите идеального сотрудника</h2>
+                    <span>Создайте вакансию и найдите того самого</span>
+                </ng-container>
+                <ng-container *roleFeatureToggle="'education'">
+                    <h2>Найти идеальную стажировку</h2>
+                    <span>Создайте заявку на стажировку и найдите того самого</span>
+                </ng-container>
+
             </div>
             <div>
-                <profile-button title="Создать вакансию" [isActive]="true"></profile-button>
+                <profile-button *roleFeatureToggle="'company'" title="Создать вакансию" [isActive]="true"  routerLink="create-vacancy"></profile-button>
+                <profile-button *roleFeatureToggle="'education'" title="Создать заявку на стажировку" [isActive]="true" routerLink="internship-applications"></profile-button>
             </div>
         </div>
     }
