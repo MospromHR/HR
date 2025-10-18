@@ -17,3 +17,5 @@ superuser:
 storage:
   media_root: ./backend_media
   public_path_prefix: backend-media
+analytics:
+  cache_ttl_seconds: 60

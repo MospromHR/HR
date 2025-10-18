@@ -75,6 +75,7 @@ Backend построен на FastAPI и читает конфигурацию �
 | `superuser.password`| Пароль суперпользователя. |
 | `storage.media_root` | Путь к директории хранения загруженных файлов. |
 | `storage.public_path_prefix` | URL-префикс, по которому Nginx отдаёт медиа backend (`/backend-media`). |
+| `analytics.cache_ttl_seconds` | Время жизни кэша статистики (в секундах). Значение `0` отключает кэширование. |
 
 Для использования кастомного файла конфигурации достаточно смонтировать его при запуске контейнера backend:
 ```yaml
@@ -106,6 +107,7 @@ services:
 | `APP_SUPERUSER_PASSWORD` | `admin123` | Пароль суперпользователя. |
 | `APP_STORAGE_MEDIA_ROOT` | `./backend_media` | Каталог хранения медиа в контейнере. |
 | `APP_STORAGE_PUBLIC_PATH_PREFIX` | `backend-media` | URL-префикс для раздачи медиа. |
+| `APP_ANALYTICS_CACHE_TTL_SECONDS` | `60` | TTL кэша аналитических эндпоинтов. `0` — отключить кэширование. |
 | `APP_ROOT_PATH` | пусто | Префикс для FastAPI (используется Nginx, см. compose). |
 
 Переменные, относящиеся к Docker Compose (без префикса `APP_`), описаны в `.env.example` и влияют на инфраструктуру (например, параметры подключения к PostgreSQL внутри кластера).

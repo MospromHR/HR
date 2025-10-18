@@ -7,8 +7,9 @@ import sqlalchemy as sa
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
-from api.deps import get_config, get_db
+from api.deps import get_config, get_db, get_stats_cache
 from api.deps.auth import require_role
+from api.schemas.analytics import CompanyStatsResponse
 from api.schemas.profile import (
     ApplicantProfileResponse,
     CompanyListResponse,
@@ -24,6 +25,8 @@ from api.schemas.vacancy import (
     VacancyListResponse,
     VacancyResponse,
 )
+from api.services import SimpleTTLCache
+from api.services.analytics import get_company_stats
 from config import Config
 from database.schema.base import (
     ApplicantProfile,
@@ -75,6 +78,16 @@ async def get_company_profile(
     if profile is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
     return profile
+
+
+@me_router.get("/company/stats", response_model=CompanyStatsResponse)
+async def get_company_stats_endpoint(
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+    cache: SimpleTTLCache[CompanyStatsResponse] = Depends(get_stats_cache),
+) -> CompanyStatsResponse:
+    cache_key = f"company-stats:{user.id}"
+    return cache.get_or_set(cache_key, lambda: get_company_stats(db, user.id))
 
 
 @me_router.put("/company/profile", response_model=CompanyProfileResponse)

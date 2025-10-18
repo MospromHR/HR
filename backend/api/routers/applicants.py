@@ -16,8 +16,9 @@ from fastapi import (
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from api.deps import get_config, get_db
+from api.deps import get_config, get_db, get_stats_cache
 from api.deps.auth import require_role
+from api.schemas.analytics import ApplicantStatsResponse
 from api.schemas.internships import (
     ApplicantInternshipMembershipResponse,
     EducationInternshipResponse,
@@ -34,6 +35,8 @@ from api.schemas.vacancy import (
     VacancyResponse,
 )
 from api.schemas.user import RoleResponse
+from api.services import SimpleTTLCache
+from api.services.analytics import get_applicant_stats
 from config import Config
 from database.schema.base import (
     ApplicantProfile,
@@ -114,6 +117,16 @@ async def get_applicant_profile(
     if profile is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
     return profile
+
+
+@router.get("/applicant/stats", response_model=ApplicantStatsResponse)
+async def get_applicant_stats_endpoint(
+    user: User = Depends(require_role(UserRole.APPLICANT)),
+    db: Session = Depends(get_db),
+    cache: SimpleTTLCache[ApplicantStatsResponse] = Depends(get_stats_cache),
+) -> ApplicantStatsResponse:
+    cache_key = f"applicant-stats:{user.id}"
+    return cache.get_or_set(cache_key, lambda: get_applicant_stats(db, user.id))
 
 
 @router.put("/applicant/profile", response_model=ApplicantProfileResponse)
