@@ -7,6 +7,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DATABASE}
     expose:
       - 5432
+
   backend:
     build:
       context: backend
@@ -24,6 +25,7 @@ services:
       interval: 10s
       timeout: 30s
       retries: 3
+
   nginx:
     image: nginx:1.25-alpine
     depends_on:
@@ -31,5 +33,5 @@ services:
     ports:
       - "8180:80"
     volumes:
-      - ./dist:/usr/share/nginx/html:ro
+      - ./frontend/dist/hakaton/browser:/usr/share/nginx/html:ro
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
