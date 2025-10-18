@@ -4,7 +4,7 @@ from typing import Callable, Optional
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from api.security import TokenError, decode_access_token
@@ -14,19 +14,19 @@ from database.schema.base import User, UserRole
 from .deps import get_config, get_db
 
 
-http_bearer = HTTPBearer(auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/auth/token", auto_error=False)
 
 
 async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(http_bearer),
+    token: Optional[str] = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
     cfg: Config = Depends(get_config),
 ) -> User:
-    if credentials is None:
+    if token is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
     try:
-        payload = decode_access_token(credentials.credentials, secret=cfg.security.jwt_secret)
+        payload = decode_access_token(token, secret=cfg.security.jwt_secret)
     except TokenError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
