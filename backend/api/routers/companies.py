@@ -5,10 +5,11 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from api.deps import get_db
+from api.deps import get_config, get_db
 from api.deps.auth import require_role
 from api.schemas.profile import CompanyProfileResponse, CompanyProfileUpdate, MediaUploadResponse
 from api.schemas.user import RoleResponse
+from config import Config
 from database.schema.base import CompanyProfile, User, UserRole
 
 from ._media import save_media_file
@@ -64,13 +65,20 @@ async def upload_company_logo(
     logo: UploadFile = File(...),
     user: User = Depends(require_role(UserRole.COMPANY)),
     db: Session = Depends(get_db),
+    cfg: Config = Depends(get_config),
 ) -> MediaUploadResponse:
     profile = _get_company_profile(db, user.id)
     if profile is None:
         profile = CompanyProfile(user_id=user.id)
         db.add(profile)
 
-    profile.logo_url = save_media_file(logo, f"companies/{user.id}", profile.logo_url)
+    profile.logo_url = save_media_file(
+        logo,
+        f"companies/{user.id}",
+        profile.logo_url,
+        media_root=cfg.storage.media_root,
+        public_prefix=cfg.storage.public_path_prefix,
+    )
 
     db.add(profile)
     db.commit()
