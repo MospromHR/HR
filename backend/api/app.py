@@ -20,6 +20,7 @@ from api.routers import (
 )
 from api.security import hash_password
 from config import Config
+from database.demo_seed import seed_demo_data
 from database.schema.base import Base, User, UserRole
 from ss.config import ConfigProvider
 from ss.postgres import PostgresProvider
@@ -72,10 +73,16 @@ async def lifespan(app: FastAPI):
     )
     db.ping()
 
-    Base.metadata.drop_all(bind=db.engine)
+    if cfg.demo_mode:
+        logger.info("Demo mode enabled - recreating database schema")
+        Base.metadata.drop_all(bind=db.engine)
+
     Base.metadata.create_all(bind=db.engine)
 
     ensure_superuser(db, cfg)
+
+    if cfg.demo_mode:
+        seed_demo_data(db, reserved_emails=[cfg.superuser.email])
 
     container = Container(db, cfg)
     app.state.container = container

@@ -33,6 +33,7 @@ class StorageConfig(BaseModel):
 
 class Config(BaseModel):
     env: str = "dev"  # dev/stage/prod
+    demo_mode: bool = True
     postgres: PostgresConfig = PostgresConfig()
     security: SecurityConfig = SecurityConfig()
     superuser: SuperUserConfig = SuperUserConfig()

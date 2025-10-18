@@ -9,6 +9,7 @@ dependencies = [
     "celery>=5.5.3",
     "fastapi[standard]>=0.118.0",
     "flower>=2.0.1",
+    "faker>=28.4.1",
     "psycopg2-binary>=2.9.10",
     "psycopg[binary]>=3.2.10",
     "pydantic-settings>=2.11.0",
