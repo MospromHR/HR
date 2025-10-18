@@ -1,0 +1,36 @@
+.container {
+  display: flex;
+  border: 1px solid #DADADA;
+  flex-direction: column;
+  cursor: pointer;
+  gap: 4px;
+  border-radius: 20px;
+  width: 420px;
+  padding: 20px 0 22px 38px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #ffffff;
+
+  &:hover{
+    border: 1px solid #D01B50;
+    box-shadow: 0 8px 25px rgba(208, 27, 80, 0.15);
+    transform: translateY(-2px);
+  }
+
+  &._selected{
+    border: 1px solid #D01B50;
+    background-color: #FFF5F8;
+    box-shadow: 0 4px 15px rgba(208, 27, 80, 0.1);
+  }
+}
+.title{
+  font-weight: 500;
+  font-size: 25px;
+  line-height: 32px;
+}
+
+.subtitle{
+  color: #84848E;
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 24px;
+}
