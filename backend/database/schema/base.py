@@ -151,6 +151,51 @@ class CompanyVacancy(Base):
     )
 
 
+class VacancyApplicationStatus(enum.StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
+@dataclass
+class VacancyApplication(Base):
+    __tablename__ = "vacancy_applications"
+
+    id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    vacancy_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("company_vacancies.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    status: Mapped[VacancyApplicationStatus] = mapped_column(
+        sa.Enum(VacancyApplicationStatus, name="vacancy_application_status"),
+        nullable=False,
+        default=VacancyApplicationStatus.PENDING,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        sa.UniqueConstraint("vacancy_id", "user_id", name="uq_vacancy_application"),
+    )
+
+
 @dataclass
 class EducationProfile(Base):
     __tablename__ = "education_profiles"
@@ -289,4 +334,62 @@ class EducationInternshipMember(Base):
 
     __table_args__ = (
         sa.UniqueConstraint("internship_id", "user_id", name="uq_internship_member"),
+    )
+
+
+class InternshipEngagementInitiator(enum.StrEnum):
+    COMPANY = "company"
+    EDUCATION = "education"
+
+
+class InternshipEngagementStatus(enum.StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+
+@dataclass
+class EducationInternshipEngagement(Base):
+    __tablename__ = "education_internship_engagements"
+
+    id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    internship_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("education_internships.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    company_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    initiator: Mapped[InternshipEngagementInitiator] = mapped_column(
+        sa.Enum(InternshipEngagementInitiator, name="internship_engagement_initiator"),
+        nullable=False,
+    )
+    status: Mapped[InternshipEngagementStatus] = mapped_column(
+        sa.Enum(InternshipEngagementStatus, name="internship_engagement_status"),
+        nullable=False,
+        default=InternshipEngagementStatus.PENDING,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "internship_id",
+            "company_id",
+            name="uq_internship_engagement",
+        ),
     )

@@ -20,16 +20,29 @@ from api.schemas.internships import (
     EducationInternshipWithParticipantsResponse,
     InternshipCodeGenerateRequest,
     InternshipCodeResponse,
+    InternshipEngagementCreateRequest,
+    InternshipEngagementListResponse,
     InternshipParticipantResponse,
     InternshipParticipantUpdate,
+    CompanyInternshipEngagementResponse,
+    EducationInternshipEngagementResponse,
 )
-from api.schemas.profile import ApplicantProfileResponse
+from api.schemas.profile import (
+    ApplicantProfileResponse,
+    CompanyProfileResponse,
+    EducationProfileResponse,
+)
 from database.schema.base import (
     ApplicantProfile,
+    CompanyProfile,
     EducationInternship,
     EducationInternshipCode,
+    EducationInternshipEngagement,
     EducationInternshipMember,
     EducationInternshipStatus,
+    EducationProfile,
+    InternshipEngagementInitiator,
+    InternshipEngagementStatus,
     InternshipParticipantStatus,
     User,
     UserRole,
@@ -98,6 +111,237 @@ def _serialize_member(
         email=resolved_user.email if resolved_user else "",
         profile=ApplicantProfileResponse.model_validate(resolved_profile) if resolved_profile else None,
     )
+
+
+def _serialize_education_engagement(
+    engagement: EducationInternshipEngagement,
+    company_user: User,
+    profile: CompanyProfile | None,
+) -> EducationInternshipEngagementResponse:
+    return EducationInternshipEngagementResponse(
+        id=engagement.id,
+        internship_id=engagement.internship_id,
+        company_id=engagement.company_id,
+        initiator=engagement.initiator,
+        status=engagement.status,
+        created_at=engagement.created_at,
+        updated_at=engagement.updated_at,
+        company_email=company_user.email,
+        company_profile=(
+            CompanyProfileResponse.model_validate(profile) if profile else None
+        ),
+    )
+
+
+def _serialize_company_engagement(
+    engagement: EducationInternshipEngagement,
+    internship: EducationInternship,
+    education_user: User,
+    education_profile: EducationProfile | None,
+) -> CompanyInternshipEngagementResponse:
+    return CompanyInternshipEngagementResponse(
+        id=engagement.id,
+        internship_id=engagement.internship_id,
+        company_id=engagement.company_id,
+        initiator=engagement.initiator,
+        status=engagement.status,
+        created_at=engagement.created_at,
+        updated_at=engagement.updated_at,
+        education_email=education_user.email,
+        education_profile=(
+            EducationProfileResponse.model_validate(education_profile)
+            if education_profile
+            else None
+        ),
+        internship=EducationInternshipResponse.model_validate(internship),
+    )
+
+
+def _get_company_user(
+    db: Session,
+    company_id: UUID,
+) -> tuple[User, CompanyProfile | None]:
+    stmt = (
+        sa.select(User, CompanyProfile)
+        .join(CompanyProfile, CompanyProfile.user_id == User.id, isouter=True)
+        .where(
+            User.id == company_id,
+            User.role == UserRole.COMPANY,
+            User.is_active.is_(True),
+        )
+        .limit(1)
+    )
+    row = db.execute(stmt).first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company not found")
+    return row
+
+
+def _get_engagement_for_education(
+    db: Session,
+    internship_id: UUID,
+    engagement_id: UUID,
+) -> tuple[EducationInternshipEngagement, User, CompanyProfile | None]:
+    stmt = (
+        sa.select(EducationInternshipEngagement, User, CompanyProfile)
+        .join(User, User.id == EducationInternshipEngagement.company_id)
+        .join(
+            CompanyProfile,
+            CompanyProfile.user_id == User.id,
+            isouter=True,
+        )
+        .where(
+            EducationInternshipEngagement.internship_id == internship_id,
+            EducationInternshipEngagement.id == engagement_id,
+        )
+        .limit(1)
+    )
+    row = db.execute(stmt).first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Engagement not found")
+    return row
+
+
+def _get_engagement_for_company(
+    db: Session,
+    company_id: UUID,
+    internship_id: UUID,
+    engagement_id: UUID,
+) -> tuple[
+    EducationInternshipEngagement,
+    EducationInternship,
+    User,
+    EducationProfile | None,
+]:
+    stmt = (
+        sa.select(EducationInternshipEngagement, EducationInternship, User, EducationProfile)
+        .join(
+            EducationInternship,
+            EducationInternship.id == EducationInternshipEngagement.internship_id,
+        )
+        .join(User, User.id == EducationInternship.user_id)
+        .join(
+            EducationProfile,
+            EducationProfile.user_id == User.id,
+            isouter=True,
+        )
+        .where(
+            EducationInternshipEngagement.company_id == company_id,
+            EducationInternshipEngagement.internship_id == internship_id,
+            EducationInternshipEngagement.id == engagement_id,
+        )
+        .limit(1)
+    )
+    row = db.execute(stmt).first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Engagement not found")
+    return row
+
+
+def _list_education_engagements(
+    db: Session,
+    internship_id: UUID,
+    limit: int,
+    offset: int,
+    status_filter: InternshipEngagementStatus | None,
+) -> InternshipEngagementListResponse:
+    filters: list[sa.ColumnElement[bool]] = [
+        EducationInternshipEngagement.internship_id == internship_id
+    ]
+    if status_filter is not None:
+        filters.append(EducationInternshipEngagement.status == status_filter)
+
+    total_stmt = (
+        sa.select(sa.func.count())
+        .select_from(EducationInternshipEngagement)
+        .where(*filters)
+    )
+    total = db.scalar(total_stmt) or 0
+
+    stmt = (
+        sa.select(EducationInternshipEngagement, User, CompanyProfile)
+        .join(User, User.id == EducationInternshipEngagement.company_id)
+        .join(CompanyProfile, CompanyProfile.user_id == User.id, isouter=True)
+        .where(*filters)
+        .order_by(EducationInternshipEngagement.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    rows = db.execute(stmt).all()
+    items = [
+        _serialize_education_engagement(engagement, company_user, profile)
+        for engagement, company_user, profile in rows
+    ]
+    return InternshipEngagementListResponse(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
+def _list_company_engagements(
+    db: Session,
+    company_id: UUID,
+    limit: int,
+    offset: int,
+    status_filter: InternshipEngagementStatus | None,
+    internship_id: UUID | None = None,
+) -> InternshipEngagementListResponse:
+    filters: list[sa.ColumnElement[bool]] = [
+        EducationInternshipEngagement.company_id == company_id
+    ]
+    if internship_id is not None:
+        filters.append(EducationInternshipEngagement.internship_id == internship_id)
+    if status_filter is not None:
+        filters.append(EducationInternshipEngagement.status == status_filter)
+
+    total_stmt = (
+        sa.select(sa.func.count())
+        .select_from(EducationInternshipEngagement)
+        .where(*filters)
+    )
+    total = db.scalar(total_stmt) or 0
+
+    stmt = (
+        sa.select(EducationInternshipEngagement, EducationInternship, User, EducationProfile)
+        .join(
+            EducationInternship,
+            EducationInternship.id == EducationInternshipEngagement.internship_id,
+        )
+        .join(User, User.id == EducationInternship.user_id)
+        .join(
+            EducationProfile,
+            EducationProfile.user_id == User.id,
+            isouter=True,
+        )
+        .where(*filters)
+        .order_by(EducationInternshipEngagement.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    rows = db.execute(stmt).all()
+    items = [
+        _serialize_company_engagement(engagement, internship, education_user, profile)
+        for engagement, internship, education_user, profile in rows
+    ]
+    return InternshipEngagementListResponse(
+        items=items,
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
+def _ensure_pending_engagement(engagement: EducationInternshipEngagement) -> None:
+    if engagement.status == InternshipEngagementStatus.CANCELLED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Engagement was cancelled")
+    if engagement.status == InternshipEngagementStatus.APPROVED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Engagement already approved")
+    if engagement.status == InternshipEngagementStatus.REJECTED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Engagement already rejected")
+    if engagement.status != InternshipEngagementStatus.PENDING:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Engagement is not pending")
 
 
 @router.get("", response_model=list[EducationInternshipResponse])
@@ -347,6 +591,158 @@ async def update_participant(
     return _serialize_member(db, member)
 
 
+@router.get(
+    "/{internship_id}/responses",
+    response_model=InternshipEngagementListResponse,
+)
+async def list_internship_engagements(
+    internship_id: UUID,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    status_filter: InternshipEngagementStatus | None = Query(
+        None, alias="status", description="Filter engagements by status"
+    ),
+    user: User = Depends(require_role(UserRole.EDUCATION)),
+    db: Session = Depends(get_db),
+) -> InternshipEngagementListResponse:
+    internship = _get_internship(db, user.id, internship_id)
+    return _list_education_engagements(db, internship.id, limit, offset, status_filter)
+
+
+@router.post(
+    "/{internship_id}/responses",
+    response_model=EducationInternshipEngagementResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_internship_engagement(
+    internship_id: UUID,
+    payload: InternshipEngagementCreateRequest,
+    user: User = Depends(require_role(UserRole.EDUCATION)),
+    db: Session = Depends(get_db),
+) -> EducationInternshipEngagementResponse:
+    internship = _get_internship(db, user.id, internship_id)
+    if internship.status != EducationInternshipStatus.PUBLISHED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only published internships can be shared",
+        )
+
+    company_user, company_profile = _get_company_user(db, payload.company_id)
+
+    stmt = sa.select(EducationInternshipEngagement).where(
+        EducationInternshipEngagement.internship_id == internship.id,
+        EducationInternshipEngagement.company_id == company_user.id,
+    )
+    engagement = db.scalar(stmt)
+
+    if engagement is None:
+        engagement = EducationInternshipEngagement(
+            internship_id=internship.id,
+            company_id=company_user.id,
+            initiator=InternshipEngagementInitiator.EDUCATION,
+            status=InternshipEngagementStatus.PENDING,
+        )
+    elif engagement.status in {
+        InternshipEngagementStatus.CANCELLED,
+        InternshipEngagementStatus.REJECTED,
+    }:
+        engagement.status = InternshipEngagementStatus.PENDING
+        engagement.initiator = InternshipEngagementInitiator.EDUCATION
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Engagement already exists",
+        )
+
+    db.add(engagement)
+    db.commit()
+    db.refresh(engagement)
+    return _serialize_education_engagement(engagement, company_user, company_profile)
+
+
+@router.post(
+    "/{internship_id}/responses/{engagement_id}/cancel",
+    response_model=EducationInternshipEngagementResponse,
+)
+async def cancel_internship_engagement(
+    internship_id: UUID,
+    engagement_id: UUID,
+    user: User = Depends(require_role(UserRole.EDUCATION)),
+    db: Session = Depends(get_db),
+) -> EducationInternshipEngagementResponse:
+    internship = _get_internship(db, user.id, internship_id)
+    engagement, company_user, company_profile = _get_engagement_for_education(
+        db, internship.id, engagement_id
+    )
+    if engagement.initiator != InternshipEngagementInitiator.EDUCATION:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only engagements initiated by the education organization can be cancelled",
+        )
+
+    if engagement.status != InternshipEngagementStatus.CANCELLED:
+        engagement.status = InternshipEngagementStatus.CANCELLED
+        db.add(engagement)
+        db.commit()
+        db.refresh(engagement)
+
+    return _serialize_education_engagement(engagement, company_user, company_profile)
+
+
+@router.post(
+    "/{internship_id}/responses/{engagement_id}/approve",
+    response_model=EducationInternshipEngagementResponse,
+)
+async def approve_company_engagement(
+    internship_id: UUID,
+    engagement_id: UUID,
+    user: User = Depends(require_role(UserRole.EDUCATION)),
+    db: Session = Depends(get_db),
+) -> EducationInternshipEngagementResponse:
+    internship = _get_internship(db, user.id, internship_id)
+    engagement, company_user, company_profile = _get_engagement_for_education(
+        db, internship.id, engagement_id
+    )
+    if engagement.initiator != InternshipEngagementInitiator.COMPANY:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only company-initiated engagements can be approved",
+        )
+    _ensure_pending_engagement(engagement)
+    engagement.status = InternshipEngagementStatus.APPROVED
+    db.add(engagement)
+    db.commit()
+    db.refresh(engagement)
+    return _serialize_education_engagement(engagement, company_user, company_profile)
+
+
+@router.post(
+    "/{internship_id}/responses/{engagement_id}/reject",
+    response_model=EducationInternshipEngagementResponse,
+)
+async def reject_company_engagement(
+    internship_id: UUID,
+    engagement_id: UUID,
+    user: User = Depends(require_role(UserRole.EDUCATION)),
+    db: Session = Depends(get_db),
+) -> EducationInternshipEngagementResponse:
+    internship = _get_internship(db, user.id, internship_id)
+    engagement, company_user, company_profile = _get_engagement_for_education(
+        db, internship.id, engagement_id
+    )
+    if engagement.initiator != InternshipEngagementInitiator.COMPANY:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only company-initiated engagements can be rejected",
+        )
+    _ensure_pending_engagement(engagement)
+    engagement.status = InternshipEngagementStatus.REJECTED
+    db.add(engagement)
+    db.commit()
+    db.refresh(engagement)
+    return _serialize_education_engagement(engagement, company_user, company_profile)
+
+
 def _resolve_status_filter(status: str | None) -> EducationInternshipStatus | None:
     if status is None:
         return None
@@ -521,3 +917,209 @@ async def get_company_internship(
         approved_participants=participants,
     )
 
+
+@company_internships_router.get(
+    "/responses",
+    response_model=InternshipEngagementListResponse,
+)
+async def list_company_engagements_endpoint(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    status_filter: InternshipEngagementStatus | None = Query(
+        None, alias="status", description="Filter engagements by status"
+    ),
+    internship_id: UUID | None = Query(
+        None, description="Filter engagements by internship"
+    ),
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+) -> InternshipEngagementListResponse:
+    return _list_company_engagements(
+        db,
+        user.id,
+        limit,
+        offset,
+        status_filter,
+        internship_id,
+    )
+
+
+@company_internships_router.get(
+    "/{internship_id}/responses",
+    response_model=InternshipEngagementListResponse,
+)
+async def list_company_internship_engagements(
+    internship_id: UUID,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    status_filter: InternshipEngagementStatus | None = Query(
+        None, alias="status", description="Filter engagements by status"
+    ),
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+) -> InternshipEngagementListResponse:
+    return _list_company_engagements(
+        db,
+        user.id,
+        limit,
+        offset,
+        status_filter,
+        internship_id,
+    )
+
+
+@company_internships_router.post(
+    "/{internship_id}/responses",
+    response_model=CompanyInternshipEngagementResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_company_engagement(
+    internship_id: UUID,
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+) -> CompanyInternshipEngagementResponse:
+    stmt = (
+        sa.select(EducationInternship, User, EducationProfile)
+        .join(User, User.id == EducationInternship.user_id)
+        .join(EducationProfile, EducationProfile.user_id == User.id, isouter=True)
+        .where(
+            EducationInternship.id == internship_id,
+            EducationInternship.status == EducationInternshipStatus.PUBLISHED,
+        )
+        .limit(1)
+    )
+    row = db.execute(stmt).first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Internship not found")
+
+    internship, education_user, education_profile = row
+
+    stmt = sa.select(EducationInternshipEngagement).where(
+        EducationInternshipEngagement.internship_id == internship.id,
+        EducationInternshipEngagement.company_id == user.id,
+    )
+    engagement = db.scalar(stmt)
+
+    if engagement is None:
+        engagement = EducationInternshipEngagement(
+            internship_id=internship.id,
+            company_id=user.id,
+            initiator=InternshipEngagementInitiator.COMPANY,
+            status=InternshipEngagementStatus.PENDING,
+        )
+    elif engagement.status in {
+        InternshipEngagementStatus.CANCELLED,
+        InternshipEngagementStatus.REJECTED,
+    }:
+        engagement.status = InternshipEngagementStatus.PENDING
+        engagement.initiator = InternshipEngagementInitiator.COMPANY
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Engagement already exists",
+        )
+
+    db.add(engagement)
+    db.commit()
+    db.refresh(engagement)
+    return _serialize_company_engagement(
+        engagement,
+        internship,
+        education_user,
+        education_profile,
+    )
+
+
+@company_internships_router.post(
+    "/{internship_id}/responses/{engagement_id}/cancel",
+    response_model=CompanyInternshipEngagementResponse,
+)
+async def cancel_company_engagement(
+    internship_id: UUID,
+    engagement_id: UUID,
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+) -> CompanyInternshipEngagementResponse:
+    engagement, internship, education_user, education_profile = _get_engagement_for_company(
+        db, user.id, internship_id, engagement_id
+    )
+    if engagement.initiator != InternshipEngagementInitiator.COMPANY:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only engagements initiated by the company can be cancelled",
+        )
+
+    if engagement.status != InternshipEngagementStatus.CANCELLED:
+        engagement.status = InternshipEngagementStatus.CANCELLED
+        db.add(engagement)
+        db.commit()
+        db.refresh(engagement)
+
+    return _serialize_company_engagement(
+        engagement,
+        internship,
+        education_user,
+        education_profile,
+    )
+
+
+@company_internships_router.post(
+    "/{internship_id}/responses/{engagement_id}/approve",
+    response_model=CompanyInternshipEngagementResponse,
+)
+async def approve_education_engagement(
+    internship_id: UUID,
+    engagement_id: UUID,
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+) -> CompanyInternshipEngagementResponse:
+    engagement, internship, education_user, education_profile = _get_engagement_for_company(
+        db, user.id, internship_id, engagement_id
+    )
+    if engagement.initiator != InternshipEngagementInitiator.EDUCATION:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only education-initiated engagements can be approved",
+        )
+    _ensure_pending_engagement(engagement)
+    engagement.status = InternshipEngagementStatus.APPROVED
+    db.add(engagement)
+    db.commit()
+    db.refresh(engagement)
+    return _serialize_company_engagement(
+        engagement,
+        internship,
+        education_user,
+        education_profile,
+    )
+
+
+@company_internships_router.post(
+    "/{internship_id}/responses/{engagement_id}/reject",
+    response_model=CompanyInternshipEngagementResponse,
+)
+async def reject_education_engagement(
+    internship_id: UUID,
+    engagement_id: UUID,
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+) -> CompanyInternshipEngagementResponse:
+    engagement, internship, education_user, education_profile = _get_engagement_for_company(
+        db, user.id, internship_id, engagement_id
+    )
+    if engagement.initiator != InternshipEngagementInitiator.EDUCATION:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only education-initiated engagements can be rejected",
+        )
+    _ensure_pending_engagement(engagement)
+    engagement.status = InternshipEngagementStatus.REJECTED
+    db.add(engagement)
+    db.commit()
+    db.refresh(engagement)
+    return _serialize_company_engagement(
+        engagement,
+        internship,
+        education_user,
+        education_profile,
+    )
