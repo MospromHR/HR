@@ -1,0 +1,64 @@
+@let data = tableData$ | async;
+@if (data?.length) {
+    <table
+            tuiTable
+            class="table"
+            [columns]="columns"
+    >
+        <thead>
+        <tr tuiThGroup>
+            <th tuiTh>Период</th>
+            <th tuiTh>Тип</th>
+            <th tuiTh>Направление</th>
+            <th tuiTh>Курс</th>
+            <th tuiTh>Компания</th>
+            <th tuiTh>Статус</th>
+        </tr>
+        </thead>
+
+        <tbody tuiTbody>
+            @for (item of data; track item.id) {
+                <tr tuiTr>
+                    <td
+                            *tuiCell="'period'"
+                            tuiTd
+                    >
+                        {{ item.period }}
+                    </td>
+                    <td
+                            *tuiCell="'type'"
+                            tuiTd
+                    >
+                        {{ item.type }}
+                    </td>
+                    <td
+                            *tuiCell="'direction'"
+                            tuiTd
+                    >
+                        {{ item.direction }}
+                    </td>
+                    <td
+                            *tuiCell="'well'"
+                            tuiTd
+                    >
+                        {{ item.well }}
+                    </td>
+                    <td
+                            *tuiCell="'company'"
+                            tuiTd
+                    >
+                        {{ item.company }}
+                    </td>
+                    <td
+                            *tuiCell="'status'"
+                            tuiTd
+                    >
+                        {{ item.status }}
+                    </td>
+                </tr>
+
+            }
+
+        </tbody>
+    </table>
+}

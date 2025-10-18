@@ -49,6 +49,10 @@ export const routes: Routes = [
                 path: 'internship-applications',
                 loadComponent: () => import('../modules/profile/feature/internship-applications/internship-applications.component').then(m => m.InternshipApplicationsComponent),
             },
+            {
+                path: 'create-internship',
+                loadComponent: () => import('../modules/profile/feature/create-internship/create-internship.component').then(m => m.CreateInternshipComponent),
+            },
         ],
     }
 ];

@@ -1,0 +1,70 @@
+:host {
+  width: 100%;
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  padding-top: 45px;
+  padding-inline: 60px;
+}
+
+.header {
+  font-weight: 500;
+  font-size: 32px;
+  line-height: 32.1px;
+  color: #252525;
+}
+
+.description {
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24.97px;
+  color: #252525;
+}
+
+.form{
+  margin-top: 40px;
+  max-width: 760px;
+  height: 500px;
+  overflow-y: auto;
+  padding-right: 30px;
+}
+
+.hit{
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24.97px;
+
+}
+
+.cell{
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 40px;
+}
+
+.button{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  border: none;
+  width: 420px;
+  height: 70px;
+  cursor: pointer;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 25px;
+  line-height: 32px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  background-color: #D01B50;
+  color: #FFFFFF;
+
+  &:disabled{
+    background-color: #dca0b2;
+  }
+}
