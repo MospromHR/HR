@@ -1,0 +1,56 @@
+{
+  "applicants": [
+    {
+      "email": "applicant.demo1@example.com",
+      "password": "demo12345",
+      "first_name": "Иван",
+      "last_name": "Иванов"
+    },
+    {
+      "email": "applicant.demo2@example.com",
+      "password": "demo12345",
+      "first_name": "Анна",
+      "last_name": "Петрова"
+    },
+    {
+      "email": "applicant.demo3@example.com",
+      "password": "demo12345",
+      "first_name": "Сергей",
+      "last_name": "Сидоров"
+    }
+  ],
+  "companies": [
+    {
+      "email": "company.demo1@example.com",
+      "password": "demo12345",
+      "company_name": "ООО \"Альфа Тех\""
+    },
+    {
+      "email": "company.demo2@example.com",
+      "password": "demo12345",
+      "company_name": "АО \"Бета Софт\""
+    },
+    {
+      "email": "company.demo3@example.com",
+      "password": "demo12345",
+      "company_name": "ООО \"Гамма Лаб\""
+    }
+  ],
+  "educations": [
+    {
+      "email": "edu.demo1@example.com",
+      "password": "demo12345",
+      "organization_name": "Колледж цифровых технологий"
+    },
+    {
+      "email": "edu.demo2@example.com",
+      "password": "demo12345",
+      "organization_name": "Университет прикладных наук"
+    },
+    {
+      "email": "edu.demo3@example.com",
+      "password": "demo12345",
+      "organization_name": "Академия инноваций"
+    }
+  ]
+}
