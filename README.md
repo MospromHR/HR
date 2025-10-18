@@ -4,7 +4,7 @@
 
 ![Backend FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white) ![Frontend Angular](https://img.shields.io/badge/Frontend-Angular-dd0031?logo=angular&logoColor=white) ![Database PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?logo=postgresql&logoColor=white) ![Reverse Proxy Nginx](https://img.shields.io/badge/Proxy-Nginx-009639?logo=nginx&logoColor=white) ![Docker Compose](https://img.shields.io/badge/Orchestration-Docker%20Compose-2496ed?logo=docker&logoColor=white) ![MIT License](https://img.shields.io/badge/License-MIT-yellow)
 
-> 💼 Готовое демо-решение для управления наймом, стажировками и вакансиями: веб-приложение для HR-специалистов, соискателей и ВУЗов!
+> 💼 Готовое решение для управления наймом, стажировками и вакансиями: веб-приложение для HR-специалистов, соискателей и ВУЗов!
 
 ## 📚 Оглавление
 - [Быстрый старт (демо)](#⚡️-быстрый-старт-демо)
