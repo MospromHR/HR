@@ -209,6 +209,9 @@ class EducationInternship(Base):
     start_date: Mapped[date] = mapped_column(sa.Date, nullable=False)
     end_date: Mapped[date] = mapped_column(sa.Date, nullable=False)
     capacity: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    type: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    course: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    description: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     status: Mapped[EducationInternshipStatus] = mapped_column(
         sa.Enum(EducationInternshipStatus, name="education_internship_status"),
         nullable=False,
