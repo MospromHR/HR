@@ -306,6 +306,13 @@ def _create_internships(
         start = date.today() + timedelta(days=faker.random_int(min=5, max=40))
         end = start + timedelta(days=faker.random_int(min=45, max=120))
         capacity = faker.random_int(min=10, max=40)
+        internship_type = random.choice([
+            "Очная",
+            "Заочная",
+            "Гибрид",
+        ])
+        course = faker.random_int(min=1, max=6)
+        description = "\n".join(faker.paragraphs(nb=3))
 
         internship = EducationInternship(
             user_id=education_user.id,
@@ -314,6 +321,9 @@ def _create_internships(
             start_date=start,
             end_date=end,
             capacity=capacity,
+            type=internship_type,
+            course=course,
+            description=description,
             status=EducationInternshipStatus.PUBLISHED,
         )
         session.add(internship)

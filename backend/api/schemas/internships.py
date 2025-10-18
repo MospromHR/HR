@@ -16,6 +16,9 @@ class EducationInternshipBase(BaseModel):
     start_date: date
     end_date: date
     capacity: int = Field(gt=0)
+    type: str | None = None
+    course: int | None = None
+    description: str | None = None
 
 
 class EducationInternshipCreate(EducationInternshipBase):
@@ -28,6 +31,9 @@ class EducationInternshipUpdate(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     capacity: int | None = Field(default=None, gt=0)
+    type: str | None = None
+    course: int | None = None
+    description: str | None = None
 
 
 class EducationInternshipResponse(EducationInternshipBase):
