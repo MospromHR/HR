@@ -29,7 +29,7 @@ export const routes: Routes = [
     {
         path: 'profile',
         loadComponent: () => import('../modules/profile/shell/profile/profile.component').then(m => m.ProfileComponent),
-        // canActivate: [authGuard], todo: check token
+        canActivate: [authGuard],
         //todo перенести либу auth
         children: [
             {
