@@ -18,5 +18,6 @@ async def startup_time(request: Request):
     started_at = getattr(request.app.state, "startup_time", None)
     return {
         "startup_time": started_at.isoformat() if started_at else None,
+        "rev": "1"
     }
 
