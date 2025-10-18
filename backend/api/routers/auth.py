@@ -102,7 +102,11 @@ def _create_token_response(user: User, cfg: Config) -> TokenResponse:
         secret=cfg.security.jwt_secret,
         expires_delta=refresh_expires,
     )
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        role=user.role,
+    )
 
 
 @router.post("/login", response_model=TokenResponse)
