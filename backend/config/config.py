@@ -15,12 +15,13 @@ class PostgresConfig(BaseModel):
 class SecurityConfig(BaseModel):
     jwt_secret: str = Field("change-me", min_length=1)
     access_token_expire_minutes: int = Field(60, ge=1)
+    refresh_token_expire_minutes: int = Field(60 * 24 * 7, ge=1)
 
 
 class SuperUserConfig(BaseModel):
     email: EmailStr = "admin@example.com"
     password: str = Field("admin123", min_length=1)
-    role: UserRole = UserRole.COMPANY
+    role: UserRole = UserRole.ADMIN
 
 
 class Config(BaseModel):

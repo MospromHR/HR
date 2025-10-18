@@ -9,7 +9,7 @@ postgres:
 security:
   jwt_secret: change-me
   access_token_expire_minutes: 60
+  refresh_token_expire_minutes: 10080
 superuser:
   email: admin@example.com
   password: admin123
-  role: company

@@ -31,7 +31,7 @@ def ensure_superuser(pg: PostgresProvider, cfg: Config) -> None:
             user = User(
                 email=cfg.superuser.email,
                 hashed_password=hashed_password,
-                role=role,
+                role=UserRole.ADMIN,
                 is_superuser=True,
             )
             db.add(user)

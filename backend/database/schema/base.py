@@ -26,6 +26,7 @@ class UserRole(enum.StrEnum):
     APPLICANT = "applicant"
     COMPANY = "company"
     EDUCATION = "education"
+    ADMIN = "admin"
 
 
 @dataclass
