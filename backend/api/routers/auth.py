@@ -54,6 +54,7 @@ async def register_user(
         role=payload.role,
     )
     db.add(user)
+    db.flush()
 
     profile_model_map: dict[UserRole, type[ApplicantProfile | CompanyProfile | EducationProfile]] = {
         UserRole.APPLICANT: ApplicantProfile,
