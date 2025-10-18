@@ -1,0 +1,16 @@
+<div class="wrapper">
+    <div class="container">
+        <div class="nav">
+            <!-- by route active-->
+            <profile-button title="Активные" [isActive]="true"></profile-button>
+            <profile-button title="На модерации"></profile-button>
+            <profile-button title="Черновики"></profile-button>
+            <profile-button title="Архив"></profile-button>
+        </div>
+        <div class="add">
+            <!--always active-->
+            <profile-button title="Создать вакансию" [isActive]="true"></profile-button>
+        </div>
+    </div>
+    <profile-list [key]="selectedKey()"></profile-list>
+</div>

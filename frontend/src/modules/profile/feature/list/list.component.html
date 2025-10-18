@@ -1,0 +1,18 @@
+<div class="wrapper">
+    @for (item of list(); track item) {
+
+    } @empty {
+       <div class="empty">
+           <div class="star-circle">
+               <div class="star"></div>
+           </div>
+           <div class="text">
+               <h2>Найдите идеального сотрудника</h2>
+               <span>Создайте вакансию и найдите того самого</span>
+           </div>
+           <div>
+               <profile-button title="Создать вакансию" [isActive]="true"></profile-button>
+           </div>
+       </div>
+    }
+</div>

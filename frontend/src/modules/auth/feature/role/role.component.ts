@@ -5,32 +5,30 @@ import {Router} from '@angular/router';
 type Role = 'company' | 'candidate' | 'university';
 
 @Component({
-  selector: 'auth-role',
-  imports: [
-    RoleItemComponent
-  ],
-  templateUrl: './role.component.html',
-  styleUrl: './role.component.less'
+    selector: 'auth-role',
+    imports: [
+        RoleItemComponent
+    ],
+    templateUrl: './role.component.html',
+    styleUrl: './role.component.less'
 })
 export class RoleComponent {
-  selectedRole = signal<Role>('candidate')
+    selectedRole = signal<Role>('candidate')
 
-  selectRole(role: Role) {
-    this.selectedRole.set(role);
-  }
+    selectRole(role: Role) {
+        this.selectedRole.set(role);
+    }
 
-  constructor(private router: Router) {
-  }
+    constructor(private router: Router) {
+    }
 
-  goToLogin(): void {
-    this.router.navigate(['/auth/login'], {
-      queryParams: { role: this.selectedRole() }
-    }).then();
-  }
+    goToLogin(): void {
+        this.router.navigate(['/auth/login']).then();
+    }
 
-  goToRegister(): void {
-    this.router.navigate(['/auth/register'], {
-      queryParams: { role: this.selectedRole() }
-    }).then();
-  }
+    goToRegister(): void {
+        this.router.navigate(['/auth/register'], {
+            queryParams: {role: this.selectedRole()}
+        }).then();
+    }
 }
