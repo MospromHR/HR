@@ -1,6 +1,8 @@
-import {Injectable} from '@angular/core';
-import {BehaviorSubject, map, Observable, of, tap} from 'rxjs';
+import {Injectable, signal} from '@angular/core';
+import {BehaviorSubject, map, Observable, tap} from 'rxjs';
 import {HttpClient} from "@angular/common/http";
+import {Role} from "../../../data-access/api.interfaces";
+import {http} from "../../../data-access/api.const";
 
 interface AuthResponse {
     access_token: string;
@@ -8,16 +10,18 @@ interface AuthResponse {
     token_type: string;
 }
 
-const http = 'https://hackathon.silkslime.ru'
+
 
 @Injectable({
     providedIn: 'root',
 })
 export class AuthService {
+    isAuth = signal(false);
+
     private accessToken = new BehaviorSubject<string | null>(null);
     private readonly TOKEN_KEY = 'access_token';
     private readonly REFRESH_TOKEN_KEY = 'refresh_token';
-    readonly authorized$: Observable<boolean> = of(true);
+
 
     constructor(private httpClient: HttpClient) {
         const savedToken = localStorage.getItem(this.TOKEN_KEY);
@@ -35,8 +39,20 @@ export class AuthService {
         }))
     }
 
+    register(email: string, password: string, role: Role): Observable<void> {
+        return this.httpClient.post<AuthResponse>(`${http}/api/v1/auth/register`, {
+            email,
+            role,
+            password
+        }).pipe(map((response) => {
+            this.setTokens(response)
+        }))
+    }
+
     getAccessToken(): string | null {
-        return localStorage.getItem(this.TOKEN_KEY);
+        const token = localStorage.getItem(this.TOKEN_KEY);
+        this.isAuth.set(!!token)
+        return token
     }
 
     getRefreshToken(): string | null {

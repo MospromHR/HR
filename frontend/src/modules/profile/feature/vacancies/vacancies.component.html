@@ -1,7 +1,6 @@
 <div class="wrapper">
     <div class="container">
         <div class="nav">
-            <!-- by route active-->
             <profile-button title="Активные" [isActive]="true"></profile-button>
             <profile-button title="На модерации"></profile-button>
             <profile-button title="Черновики"></profile-button>
@@ -9,7 +8,8 @@
         </div>
         <div class="add">
             <!--always active-->
-            <profile-button title="Создать вакансию" [isActive]="true"></profile-button>
+            <profile-button *roleFeatureToggle="'company'" routerLink="create-vacancy" title="Создать вакансию" [isActive]="true"></profile-button>
+            <profile-button *roleFeatureToggle="'education'"  routerLink="create-vacancy" title="Создать заявку на стажировку" [isActive]="true"></profile-button>
         </div>
     </div>
     <profile-list [key]="selectedKey()"></profile-list>

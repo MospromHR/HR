@@ -1,0 +1,74 @@
+<div class="wrapper">
+    <h1 class="header">Новая вакансия</h1>
+    <span class="description">*поля, отмеченные звездочкой, обязательны для заполнения</span>
+
+    <div class="form" [formGroup]="form">
+        <div class="cell">
+            <tui-input formControlName="vacancyName" class="input">
+                Название вакансии*
+            </tui-input>
+
+            <tui-input formControlName="logo" class="input">
+                Логотип компании
+            </tui-input>
+            <tui-input formControlName="companyName" class="input">
+                Название компании*
+            </tui-input>
+            <tui-input formControlName="site" class="input">
+                Площадка*
+            </tui-input>
+            <tui-input formControlName="speciality" class="input">
+                Специальность*
+            </tui-input>
+        </div>
+        <div class="cell">
+            <span class="hit">ОБЯЗАННОСТИ*</span>
+            <tui-input formControlName="responsibilities" class="input">
+                Введение текст
+            </tui-input>
+        </div>
+        <div class="cell">
+            <span class="hit">ТРЕБОВАНИЯ*</span>
+            <tui-input formControlName="requirements" class="input">
+                Введение текст
+            </tui-input>
+        </div>
+
+        <div class="cell">
+            <span class="hit">УСЛОВИЯ</span>
+            <tui-input formControlName="terms" class="input">
+                Официальное/неофициальное трудоустройство
+            </tui-input>
+
+            <tui-input formControlName="workSchedule" class="input">
+                График работы
+            </tui-input>
+            <tui-input formControlName="workPlace" class="input">
+                Место работы (адрес)
+            </tui-input>
+            <tui-input formControlName="map" class="input">
+                Карта
+            </tui-input>
+            <tui-input formControlName="probation" class="input">
+                Испытательный срок
+            </tui-input>
+            <tui-input formControlName="salary" class="input">
+                Оклад
+            </tui-input>
+            <tui-input formControlName="additionally" class="input">
+                Дополнительно
+            </tui-input>
+            <tui-input formControlName="aboutCompany" class="input">
+                О компании
+            </tui-input>
+            <tui-input formControlName="companyLink" class="input">
+                Ссылка на сайт компании
+            </tui-input>
+            <tui-input formControlName="task" class="input">
+                Задача для соискателя
+            </tui-input>
+        </div>
+    </div>
+
+    <button class="button" [disabled]="form.invalid" (click)="send()">Отправить</button>
+</div>

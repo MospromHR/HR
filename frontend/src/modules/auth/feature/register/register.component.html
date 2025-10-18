@@ -1,0 +1,17 @@
+<div class="container">
+    <h1 class="heading">Регистрация</h1>
+    <div class="form" [formGroup]="form">
+        <tui-input formControlName="login" class="input">
+            Почта
+        </tui-input>
+        <tui-input-password formControlName="password" class="input">
+            Пароль
+        </tui-input-password>
+        <tui-input-password formControlName="secPassword" class="input">
+            Повторите пароль
+        </tui-input-password>
+    </div>
+    <div class="button-wrapper">
+        <button class="button login" (click)="goToLogin()" [disabled]="form.invalid">Зарегистрироваться</button>
+    </div>
+</div>

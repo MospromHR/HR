@@ -18,8 +18,8 @@ import {takeUntilDestroyed} from "@angular/core/rxjs-interop";
 })
 export class LoginComponent {
     authForm = new FormGroup({
-        login: new FormControl('', [Validators.required]),
-        password: new FormControl('', [Validators.required])
+        login: new FormControl('', [Validators.required, Validators.minLength(3),  Validators.email]),
+        password: new FormControl('', [Validators.required, Validators.minLength(3)])
     })
 
     constructor(private router: Router,
