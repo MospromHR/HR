@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 import enum
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID as UUID_t, uuid4
 
 import sqlalchemy as sa
@@ -175,4 +175,105 @@ class EducationProfile(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False
+    )
+
+
+class InternshipParticipantStatus(enum.StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    BLOCKED = "blocked"
+
+
+@dataclass
+class EducationInternship(Base):
+    __tablename__ = "education_internships"
+
+    id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    user_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    title: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    speciality_code: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    start_date: Mapped[date] = mapped_column(sa.Date, nullable=False)
+    end_date: Mapped[date] = mapped_column(sa.Date, nullable=False)
+    capacity: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False
+    )
+
+
+@dataclass
+class EducationInternshipCode(Base):
+    __tablename__ = "education_internship_codes"
+
+    id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    internship_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("education_internships.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    code: Mapped[str] = mapped_column(sa.String(32), nullable=False, unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    used_by_user_id: Mapped[UUID_t | None] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+
+@dataclass
+class EducationInternshipMember(Base):
+    __tablename__ = "education_internship_members"
+
+    id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    internship_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("education_internships.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    status: Mapped[InternshipParticipantStatus] = mapped_column(
+        sa.Enum(InternshipParticipantStatus, name="internship_participant_status"),
+        nullable=False,
+        default=InternshipParticipantStatus.PENDING,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False
+    )
+
+    __table_args__ = (
+        sa.UniqueConstraint("internship_id", "user_id", name="uq_internship_member"),
     )
