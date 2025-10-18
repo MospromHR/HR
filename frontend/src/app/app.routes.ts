@@ -1,5 +1,6 @@
 import {Routes} from '@angular/router';
 import {authGuard} from '../modules/auth/data-access/auth.guard';
+import {CreateVacancyComponent} from "../modules/profile/feature/create-vacancy/create-vacancy.component";
 
 export const routes: Routes = [
     {
@@ -29,12 +30,17 @@ export const routes: Routes = [
     {
         path: 'profile',
         loadComponent: () => import('../modules/profile/shell/profile/profile.component').then(m => m.ProfileComponent),
-        // canActivate: [authGuard], todo: check token
+        canActivate: [authGuard],
         //todo перенести либу auth
         children: [
             {
                 path: '',
                 loadComponent: () => import('../modules/profile/feature/vacancies/vacancies.component').then(m => m.VacanciesComponent),
+            },
+
+            {
+                path: 'create-vacancy',
+                loadComponent: () => import('../modules/profile/feature/create-vacancy/create-vacancy.component').then(m => m.CreateVacancyComponent),
             },
         ],
     }

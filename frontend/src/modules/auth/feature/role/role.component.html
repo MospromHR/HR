@@ -5,12 +5,12 @@
   <div class="wrapper">
     <auth-role-item title="Я ищу работу/стажировку"
                     subtitle="Профиль соискателя"
-                    [isSelected]="selectedRoleValue === 'candidate'"
-                    (click)="selectRole('candidate')"></auth-role-item>
+                    [isSelected]="selectedRoleValue === 'applicant'"
+                    (click)="selectRole('applicant')"></auth-role-item>
     <auth-role-item title="Я ищу стажировки"
                     subtitle="Профиль вуза"
-                    [isSelected]="selectedRoleValue === 'university'"
-                    (click)="selectRole('university')"></auth-role-item>
+                    [isSelected]="selectedRoleValue === 'education'"
+                    (click)="selectRole('education')"></auth-role-item>
     <auth-role-item title="Я ищу сотрудников"
                     subtitle="Профиль работодателяя"
                     [isSelected]="selectedRoleValue === 'company'"

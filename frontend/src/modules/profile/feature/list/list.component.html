@@ -1,18 +1,30 @@
 <div class="wrapper">
     @for (item of list(); track item) {
-
+        <profile-list-item class="list-item" [header]="item.title"
+                           [viewQuantity]="item.views"
+                           [responsesQuantity]="item.responses"
+                           [conversionPercentage]="item.conversion"
+        ></profile-list-item>
     } @empty {
-       <div class="empty">
-           <div class="star-circle">
-               <div class="star"></div>
-           </div>
-           <div class="text">
-               <h2>Найдите идеального сотрудника</h2>
-               <span>Создайте вакансию и найдите того самого</span>
-           </div>
-           <div>
-               <profile-button title="Создать вакансию" [isActive]="true"></profile-button>
-           </div>
-       </div>
+        <div class="empty">
+            <div class="star-circle">
+                <div class="star"></div>
+            </div>
+            <div class="text">
+                <ng-container *roleFeatureToggle="'company'">
+                    <h2>Найдите идеального сотрудника</h2>
+                    <span>Создайте вакансию и найдите того самого</span>
+                </ng-container>
+                <ng-container *roleFeatureToggle="'education'">
+                    <h2>Найти идеальную стажировку</h2>
+                    <span>Создайте заявку на стажировку и найдите того самого</span>
+                </ng-container>
+
+            </div>
+            <div>
+                <profile-button *roleFeatureToggle="'company'" title="Создать вакансию" [isActive]="true"  routerLink="create-vacancy"></profile-button>
+                <profile-button *roleFeatureToggle="'education'" title="Создать заявку на стажировку" [isActive]="true" routerLink="internship-applications"></profile-button>
+            </div>
+        </div>
     }
 </div>

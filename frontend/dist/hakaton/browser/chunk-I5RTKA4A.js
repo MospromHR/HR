@@ -1,1 +1,0 @@
-import{ab as n}from"./chunk-PHKCN6ZT.js";var o=class e{static \u0275fac=function(t){return new(t||e)};static \u0275cmp=n({type:e,selectors:[["auth-register"]],decls:0,vars:0,template:function(t,r){},encapsulation:2})};export{o as RegisterComponent};

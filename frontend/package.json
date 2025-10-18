@@ -29,6 +29,8 @@
     "@angular/forms": "^20.3.0",
     "@angular/platform-browser": "^20.3.0",
     "@angular/router": "^20.3.0",
+    "@fontsource/roboto": "^5.2.8",
+    "@ngrx/signals": "^20.0.1",
     "@taiga-ui/addon-charts": "^4.58.0",
     "@taiga-ui/addon-commerce": "^4.58.0",
     "@taiga-ui/addon-doc": "^4.58.0",
