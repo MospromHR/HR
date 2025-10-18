@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from database.schema.base import InternshipParticipantStatus
+from database.schema.base import EducationInternshipStatus, InternshipParticipantStatus
 
 from .profile import ApplicantProfileResponse
 
@@ -35,6 +35,7 @@ class EducationInternshipResponse(EducationInternshipBase):
 
     id: UUID
     user_id: UUID
+    status: EducationInternshipStatus
     created_at: datetime
     updated_at: datetime
 
@@ -84,4 +85,21 @@ class ApplicantInternshipMembershipResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     internship: EducationInternshipResponse
+
+
+class EducationInternshipWithParticipantsResponse(EducationInternshipResponse):
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    approved_participants: list[InternshipParticipantResponse] = Field(
+        default_factory=list,
+        validation_alias="approvedParticipants",
+        serialization_alias="approvedParticipants",
+    )
+
+
+class EducationInternshipListResponse(BaseModel):
+    items: list[EducationInternshipWithParticipantsResponse]
+    total: int
+    limit: int
+    offset: int
 

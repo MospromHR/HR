@@ -11,8 +11,8 @@ services:
   backend:
     build:
       context: backend
-    ports:
-      - "1111:8000"
+    expose:
+      - 8000
     environment:
       - APP_POSTGRES_HOST=${POSTGRES_HOST}
       - APP_POSTGRES_PORT=${POSTGRES_PORT}

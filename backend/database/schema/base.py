@@ -184,6 +184,11 @@ class InternshipParticipantStatus(enum.StrEnum):
     BLOCKED = "blocked"
 
 
+class EducationInternshipStatus(enum.StrEnum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+
+
 @dataclass
 class EducationInternship(Base):
     __tablename__ = "education_internships"
@@ -204,6 +209,11 @@ class EducationInternship(Base):
     start_date: Mapped[date] = mapped_column(sa.Date, nullable=False)
     end_date: Mapped[date] = mapped_column(sa.Date, nullable=False)
     capacity: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    status: Mapped[EducationInternshipStatus] = mapped_column(
+        sa.Enum(EducationInternshipStatus, name="education_internship_status"),
+        nullable=False,
+        default=EducationInternshipStatus.DRAFT,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=sa.func.now(), nullable=False
     )

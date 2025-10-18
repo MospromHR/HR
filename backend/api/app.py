@@ -96,6 +96,7 @@ def create_app() -> FastAPI:
     app.include_router(companies.router, prefix="/v1")
     app.include_router(educations.router, prefix="/v1")
     app.include_router(education_internships.router, prefix="/v1")
+    app.include_router(education_internships.company_internships_router, prefix="/v1")
     app.include_router(admin.router, prefix="/v1")
 
     app.add_middleware(

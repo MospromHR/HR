@@ -26,6 +26,7 @@ from database.schema.base import (
     EducationInternship,
     EducationInternshipCode,
     EducationInternshipMember,
+    EducationInternshipStatus,
     InternshipParticipantStatus,
     User,
     UserRole,
@@ -160,6 +161,8 @@ async def activate_internship_code(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Code not found")
 
     code, internship = row
+    if internship.status != EducationInternshipStatus.PUBLISHED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Internship is not available")
     if code.revoked_at is not None or code.used_at is not None or code.expires_at <= now:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Code is not active")
 
