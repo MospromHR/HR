@@ -5,7 +5,7 @@ from uuid import UUID as UUID_t, uuid4
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, column_property, mapped_column
 from sqlalchemy.types import DateTime
 
 
@@ -113,44 +113,6 @@ class VacancyStatus(enum.StrEnum):
     CLOSED = "closed"
 
 
-@dataclass
-class CompanyVacancy(Base):
-    __tablename__ = "company_vacancies"
-
-    id: Mapped[UUID_t] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid4,
-    )
-    user_id: Mapped[UUID_t] = mapped_column(
-        UUID(as_uuid=True),
-        sa.ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    vacancy_name: Mapped[str] = mapped_column(sa.String(255), nullable=False)
-    speciality: Mapped[str] = mapped_column(sa.String(255), nullable=False)
-    responsibilities: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    requirements: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    terms: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
-    work_schedule: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
-    work_place: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
-    map_url: Mapped[str | None] = mapped_column(sa.String(1024), nullable=True)
-    probation: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
-    salary: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
-    additionally: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
-    task: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
-    status: Mapped[VacancyStatus] = mapped_column(
-        sa.Enum(VacancyStatus, name="vacancy_status"), nullable=False, default=VacancyStatus.DRAFT
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=sa.func.now(), nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False
-    )
-
-
 class VacancyApplicationStatus(enum.StrEnum):
     PENDING = "pending"
     APPROVED = "approved"
@@ -193,6 +155,50 @@ class VacancyApplication(Base):
 
     __table_args__ = (
         sa.UniqueConstraint("vacancy_id", "user_id", name="uq_vacancy_application"),
+    )
+
+
+@dataclass
+class CompanyVacancy(Base):
+    __tablename__ = "company_vacancies"
+
+    id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    user_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    vacancy_name: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    speciality: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    responsibilities: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    requirements: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    terms: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    work_schedule: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    work_place: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    map_url: Mapped[str | None] = mapped_column(sa.String(1024), nullable=True)
+    probation: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    salary: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    additionally: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    task: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    status: Mapped[VacancyStatus] = mapped_column(
+        sa.Enum(VacancyStatus, name="vacancy_status"), nullable=False, default=VacancyStatus.DRAFT
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False
+    )
+    applications_count: Mapped[int] = column_property(
+        sa.select(sa.func.count(VacancyApplication.id))
+        .where(VacancyApplication.vacancy_id == id)
+        .correlate_except(VacancyApplication)
+        .scalar_subquery()
     )
 
 

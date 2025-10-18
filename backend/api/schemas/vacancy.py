@@ -50,6 +50,7 @@ class VacancyResponse(VacancyBase):
     status: VacancyStatus
     created_at: datetime = Field(serialization_alias="createdAt")
     updated_at: datetime = Field(serialization_alias="updatedAt")
+    applications_count: int = Field(serialization_alias="applicationsCount")
 
 
 class VacancyListResponse(BaseModel):
