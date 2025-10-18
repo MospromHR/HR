@@ -1,9 +1,29 @@
 :host {
   width: 100%;
 }
+
 .wrapper {
   display: flex;
   min-height: 100%;
   flex-direction: column;
   min-width: 0;
+}
+
+.button {
+  display: flex;
+  margin-left: 10px;
+  cursor: pointer;
+  align-items: center;
+  height: 50px;
+  outline: none;
+  border-radius: 10px;
+  border: none;
+  padding: 10px;
+  background-color: #D01B50;
+  color: #FFFFFF;
+
+  &:disabled {
+    cursor: default;
+    background-color: #dca0b2;
+  }
 }

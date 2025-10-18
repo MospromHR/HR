@@ -9,7 +9,7 @@
         <tr tuiThGroup>
             <th tuiTh>Период</th>
             <th tuiTh>Тип</th>
-            <th tuiTh>Направление</th>
+            <th tuiTh>Количество</th>
             <th tuiTh>Курс</th>
             <th tuiTh>Компания</th>
             <th tuiTh>Статус</th>
@@ -32,28 +32,38 @@
                         {{ item.type }}
                     </td>
                     <td
-                            *tuiCell="'direction'"
+                            *tuiCell="'course'"
                             tuiTd
                     >
-                        {{ item.direction }}
+                        {{ item.course }}
                     </td>
                     <td
-                            *tuiCell="'well'"
+                            *tuiCell="'capacity'"
                             tuiTd
                     >
-                        {{ item.well }}
+                        {{ item.capacity }}
                     </td>
                     <td
-                            *tuiCell="'company'"
+                            *tuiCell="'description'"
                             tuiTd
                     >
-                        {{ item.company }}
+                        {{ item.description }}
                     </td>
                     <td
                             *tuiCell="'status'"
                             tuiTd
                     >
-                        {{ item.status }}
+                        {{ item.status === 'draft' ? 'обработка' : 'публикация' }}
+                    </td>
+                    <td
+                    >
+                        <button class="button" [disabled]="item.status === 'published'" (click)="publish(item.id)">Публикация</button>
+
+                    </td>
+                    <td
+                    >
+                        <button class="button" (click)="getCodes(item.id, item.capacity)">Получение кодов</button>
+
                     </td>
                 </tr>
 

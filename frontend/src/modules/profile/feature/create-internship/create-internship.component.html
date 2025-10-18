@@ -6,12 +6,18 @@
             <tui-input formControlName="speciality">
                 Код специальности*
             </tui-input>
+            <tui-input formControlName="type">
+                Тип практики*
+            </tui-input>
             <tui-input-number formControlName="quantity" [min]="1">
                 Количество студентов*
             </tui-input-number>
             <tui-input-number formControlName="course" [min]="1">
                 Курс*
             </tui-input-number>
+            <tui-input formControlName="description">
+                Описание
+            </tui-input>
             <tui-input-date-range formControlName="date" [tuiTextfieldLabelOutside]="true"></tui-input-date-range>
         </div>
     </div>

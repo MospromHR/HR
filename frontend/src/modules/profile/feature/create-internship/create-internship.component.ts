@@ -1,6 +1,5 @@
 import {Component, DestroyRef} from '@angular/core';
-import {Router, RouterOutlet} from '@angular/router';
-import {NavComponent} from "../../ui/nav/nav.component";
+import {Router} from '@angular/router';
 import {FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators} from "@angular/forms";
 import {
     TuiInputDateRangeModule,
@@ -16,6 +15,8 @@ interface FormData {
     speciality: string,
     quantity: number,
     course: number,
+    type: string,
+    description: string,
     date: TuiDayRange,
 }
 
@@ -39,6 +40,8 @@ export class CreateInternshipComponent {
         quantity: new FormControl(1, [Validators.required]),
         course: new FormControl(1, [Validators.required]),
         date: new FormControl<TuiDayRange | null>(null, [Validators.required]),
+        type: new FormControl('', [Validators.required]),
+        description: new FormControl('', ),
     });
 
     constructor(private router: Router,
@@ -47,7 +50,7 @@ export class CreateInternshipComponent {
     }
 
     send(): void {
-        const {speciality, quantity, course, date} = this.form.value as FormData;
+        const {speciality, quantity, course, date, type, description,} = this.form.value as FormData;
         if (!date) {
             return;
         }
@@ -57,7 +60,9 @@ export class CreateInternshipComponent {
             start_date: this.formatDate(date.from),
             end_date: this.formatDate(date.to),
             capacity: quantity,
-            course: course
+            course: course,
+            type: type,
+            description: description,
         }
         this.internshipService.postEducationInternships(data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
             this.router.navigate(['profile/internship-applications']).then();
@@ -67,7 +72,7 @@ export class CreateInternshipComponent {
 
     private formatDate(tuiDay: TuiDay): string {
         const year = tuiDay.year;
-        const month = (tuiDay.month + 1).toString().padStart(2, '0'); // +1 т.к. месяцы с 0
+        const month = (tuiDay.month + 1).toString().padStart(2, '0');
         const day = tuiDay.day.toString().padStart(2, '0');
 
         return `${year}-${month}-${day}`;
