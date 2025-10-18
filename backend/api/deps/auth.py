@@ -14,7 +14,7 @@ from database.schema.base import User, UserRole
 from .deps import get_config, get_db
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/auth/token", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 
 
 async def get_current_user(
