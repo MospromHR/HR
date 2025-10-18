@@ -1,6 +1,9 @@
 import {Routes} from '@angular/router';
 import {authGuard} from '../modules/auth/data-access/auth.guard';
 import {CreateVacancyComponent} from "../modules/profile/feature/create-vacancy/create-vacancy.component";
+import {
+    InternshipApplicationsComponent
+} from "../modules/profile/feature/internship-applications/internship-applications.component";
 
 export const routes: Routes = [
     {
@@ -41,6 +44,10 @@ export const routes: Routes = [
             {
                 path: 'create-vacancy',
                 loadComponent: () => import('../modules/profile/feature/create-vacancy/create-vacancy.component').then(m => m.CreateVacancyComponent),
+            },
+            {
+                path: 'internship-applications',
+                loadComponent: () => import('../modules/profile/feature/internship-applications/internship-applications.component').then(m => m.InternshipApplicationsComponent),
             },
         ],
     }
