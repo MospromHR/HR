@@ -48,6 +48,15 @@ class CompanyProfileResponse(CompanyProfileBase):
     updated_at: datetime
 
 
+class CompanyListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    items: list[CompanyProfileResponse]
+    total: int
+    limit: int
+    offset: int
+
+
 class EducationProfileBase(BaseModel):
     organization_name: str | None = None
     description: str | None = None
