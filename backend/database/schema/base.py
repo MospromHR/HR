@@ -107,6 +107,50 @@ class CompanyProfile(Base):
     )
 
 
+class VacancyStatus(enum.StrEnum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    CLOSED = "closed"
+
+
+@dataclass
+class CompanyVacancy(Base):
+    __tablename__ = "company_vacancies"
+
+    id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+    user_id: Mapped[UUID_t] = mapped_column(
+        UUID(as_uuid=True),
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    vacancy_name: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    speciality: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    responsibilities: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    requirements: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    terms: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    work_schedule: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    work_place: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    map_url: Mapped[str | None] = mapped_column(sa.String(1024), nullable=True)
+    probation: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    salary: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    additionally: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    task: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    status: Mapped[VacancyStatus] = mapped_column(
+        sa.Enum(VacancyStatus, name="vacancy_status"), nullable=False, default=VacancyStatus.DRAFT
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=sa.func.now(), onupdate=sa.func.now(), nullable=False
+    )
+
+
 @dataclass
 class EducationProfile(Base):
     __tablename__ = "education_profiles"
