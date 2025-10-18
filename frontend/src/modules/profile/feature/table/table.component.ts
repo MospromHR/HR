@@ -5,13 +5,17 @@ import {AsyncPipe} from "@angular/common";
 import {of} from "rxjs";
 import {InternshipCell} from "./interfaces";
 import {takeUntilDestroyed} from "@angular/core/rxjs-interop";
+import {ButtonComponent} from "../../ui/button/button.component";
+import {RouterLink} from "@angular/router";
 
 
 @Component({
     selector: 'profile-table',
     imports: [
         TuiTable,
-        AsyncPipe
+        AsyncPipe,
+        ButtonComponent,
+        RouterLink
     ],
     providers: [InternshipService],
     templateUrl: './table.component.html',

@@ -57,7 +57,9 @@
                     </td>
                     <td
                     >
-                        <button class="button" [disabled]="item.status === 'published'" (click)="publish(item.id)">Публикация</button>
+                        <button class="button" [disabled]="item.status === 'published'" (click)="publish(item.id)">
+                            Публикация
+                        </button>
 
                     </td>
                     <td
@@ -71,4 +73,18 @@
 
         </tbody>
     </table>
+} @else {
+    <div class="empty">
+        <div class="star-circle">
+            <div class="star"></div>
+        </div>
+        <div class="text">
+            <h2>Найти идеальную стажировку</h2>
+            <span>Создайте заявку на стажировку и найдите того самого</span>
+        </div>
+        <div>
+            <profile-button title="Создать заявку на стажировку" [isActive]="true" routerLink="create-internship"></profile-button>
+        </div>
+    </div>
+
 }
