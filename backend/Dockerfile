@@ -33,7 +33,7 @@ WORKDIR /app
 COPY --from=build /app/.venv /opt/venv
 COPY --from=build /app /app
 
-RUN mkdir -p /var/lib/hr/media \
+RUN mkdir -p /var/lib/hr/backend-media \
     && chown -R appuser:appuser /var/lib/hr
 
 USER appuser

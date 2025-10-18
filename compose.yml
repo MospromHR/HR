@@ -20,14 +20,14 @@ services:
       - APP_POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - APP_POSTGRES_DATABASE=${POSTGRES_DATABASE}
       - APP_ROOT_PATH=/api
-      - APP_STORAGE_MEDIA_ROOT=/var/lib/hr/media
+      - APP_STORAGE_MEDIA_ROOT=/var/lib/hr/backend-media
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 30s
       retries: 3
     volumes:
-      - media-storage:/var/lib/hr/media
+      - backend-media-storage:/var/lib/hr/backend-media
 
   nginx:
     image: nginx:1.25-alpine
@@ -38,7 +38,7 @@ services:
     volumes:
       - ./frontend/dist/hakaton/browser:/usr/share/nginx/html:ro
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - media-storage:/var/lib/hr/media:ro
+      - backend-media-storage:/var/lib/hr/backend-media:ro
 
 volumes:
-  media-storage:
+  backend-media-storage:

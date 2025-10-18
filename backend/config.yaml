@@ -14,5 +14,5 @@ superuser:
   email: admin@example.com
   password: admin123
 storage:
-  media_root: ./media
-  public_path_prefix: media
+  media_root: ./backend_media
+  public_path_prefix: backend-media

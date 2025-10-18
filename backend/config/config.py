@@ -27,8 +27,8 @@ class SuperUserConfig(BaseModel):
 
 
 class StorageConfig(BaseModel):
-    media_root: Path = Path("./media")
-    public_path_prefix: str = "media"
+    media_root: Path = Path("./backend_media")
+    public_path_prefix: str = "backend-media"
 
 
 class Config(BaseModel):
