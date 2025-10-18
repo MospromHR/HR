@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pydantic import BaseModel, EmailStr, Field
 
 from database.schema.base import UserRole
@@ -24,8 +26,14 @@ class SuperUserConfig(BaseModel):
     role: UserRole = UserRole.ADMIN
 
 
+class StorageConfig(BaseModel):
+    media_root: Path = Path("./media")
+    public_path_prefix: str = "media"
+
+
 class Config(BaseModel):
     env: str = "dev"  # dev/stage/prod
     postgres: PostgresConfig = PostgresConfig()
     security: SecurityConfig = SecurityConfig()
     superuser: SuperUserConfig = SuperUserConfig()
+    storage: StorageConfig = StorageConfig()

@@ -18,7 +18,13 @@ from api.security import (
     verify_password,
 )
 from config import Config
-from database.schema.base import User
+from database.schema.base import (
+    ApplicantProfile,
+    CompanyProfile,
+    EducationProfile,
+    User,
+    UserRole,
+)
 
 from ..schemas.auth import (
     LoginRequest,
@@ -48,6 +54,18 @@ async def register_user(
         role=payload.role,
     )
     db.add(user)
+    db.flush()
+
+    profile_model_map: dict[UserRole, type[ApplicantProfile | CompanyProfile | EducationProfile]] = {
+        UserRole.APPLICANT: ApplicantProfile,
+        UserRole.COMPANY: CompanyProfile,
+        UserRole.EDUCATION: EducationProfile,
+    }
+
+    profile_model = profile_model_map.get(user.role)
+    if profile_model is not None:
+        db.add(profile_model(user_id=user.id))
+
     db.commit()
     db.refresh(user)
     return user

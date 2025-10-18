@@ -33,6 +33,9 @@ WORKDIR /app
 COPY --from=build /app/.venv /opt/venv
 COPY --from=build /app /app
 
+RUN mkdir -p /var/lib/hr/media \
+    && chown -R appuser:appuser /var/lib/hr
+
 USER appuser
 
 EXPOSE 8000

@@ -47,19 +47,25 @@ def env_flat_to_nested(
     for key, value in flat.items():
         if not key.startswith(prefix):
             continue
-        p = key[len(prefix):]
-        if not p:
+        remainder = key[len(prefix):]
+        if not remainder:
             continue
-        parts = [p.lower() for p in p.split(nested_delimiter) if p]
-        cursor = nested
-        for i, part in enumerate(parts):
-            is_last = i == len(parts) - 1
-            if is_last:
-                cursor[part] = value
-            else:
-                if part not in cursor or not isinstance(cursor[part], dict):
-                    cursor[part] = {}
-                cursor = cursor[part]
+
+        tokens = [token.lower() for token in remainder.split(nested_delimiter) if token]
+        if not tokens:
+            continue
+
+        if len(tokens) == 1:
+            nested[tokens[0]] = value
+            continue
+
+        top_key, *rest_tokens = tokens
+        leaf_key = "_".join(rest_tokens)
+
+        if top_key not in nested or not isinstance(nested[top_key], dict):
+            nested[top_key] = {}
+
+        nested[top_key][leaf_key] = value
     return nested
 
 
