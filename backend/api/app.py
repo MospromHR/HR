@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.deps import Container
-from api.routers import auth, system, users
+from api.routers import admin, applicants, auth, companies, educations, system, users
 from api.security import hash_password
 from config import Config
 from database.schema.base import Base, User, UserRole
@@ -83,6 +83,10 @@ def create_app() -> FastAPI:
     app.include_router(system.router, prefix="/v1/system", tags=["System"])
     app.include_router(auth.router, prefix="/v1/auth", tags=["Auth"])
     app.include_router(users.router, prefix="/v1", tags=["Users"])
+    app.include_router(applicants.router, prefix="/v1")
+    app.include_router(companies.router, prefix="/v1")
+    app.include_router(educations.router, prefix="/v1")
+    app.include_router(admin.router, prefix="/v1")
 
     app.add_middleware(
         CORSMiddleware,
