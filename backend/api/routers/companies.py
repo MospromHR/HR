@@ -23,7 +23,8 @@ from database.schema.base import CompanyProfile, CompanyVacancy, User, UserRole,
 from ._media import save_media_file
 
 
-router = APIRouter(tags=["Companies"])
+companies_router = APIRouter(prefix="/companies", tags=["Companies"])
+vacancies_router = APIRouter(prefix="/vacancies", tags=["Vacancies"])
 me_router = APIRouter(prefix="/me", tags=["Companies"])
 
 
@@ -291,7 +292,7 @@ def _vacancy_filters(
     return conditions
 
 
-@router.get("/companies", response_model=CompanyListResponse)
+@companies_router.get("", response_model=CompanyListResponse)
 async def list_companies(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -338,7 +339,7 @@ async def list_companies(
     return CompanyListResponse(items=items, total=total, limit=limit, offset=offset)
 
 
-@router.get("/companies/{company_id}", response_model=CompanyProfileResponse)
+@companies_router.get("/{company_id}", response_model=CompanyProfileResponse)
 async def get_public_company(
     company_id: UUID,
     db: Session = Depends(get_db),
@@ -350,7 +351,7 @@ async def get_public_company(
     return profile
 
 
-@router.get("/companies/{company_id}/vacancies", response_model=VacancyListResponse)
+@companies_router.get("/{company_id}/vacancies", response_model=VacancyListResponse)
 async def list_public_company_vacancies(
     company_id: UUID,
     limit: int = Query(10, ge=1, le=100),
@@ -394,7 +395,7 @@ async def list_public_company_vacancies(
     return VacancyListResponse(items=items, total=total, limit=limit, offset=offset)
 
 
-@router.get("/companies/{company_id}/vacancies/{vacancy_id}", response_model=VacancyResponse)
+@companies_router.get("/{company_id}/vacancies/{vacancy_id}", response_model=VacancyResponse)
 async def get_public_vacancy(
     company_id: UUID,
     vacancy_id: UUID,
@@ -416,7 +417,7 @@ async def get_public_vacancy(
     return vacancy
 
 
-@router.get("/vacancies", response_model=VacancyListResponse)
+@vacancies_router.get("", response_model=VacancyListResponse)
 async def list_public_vacancies(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -459,4 +460,7 @@ async def list_public_vacancies(
     return VacancyListResponse(items=items, total=total, limit=limit, offset=offset)
 
 
+router = APIRouter()
 router.include_router(me_router)
+router.include_router(companies_router)
+router.include_router(vacancies_router)
