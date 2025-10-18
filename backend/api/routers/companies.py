@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 import sqlalchemy as sa
@@ -27,6 +28,7 @@ from api.schemas.vacancy import (
 )
 from api.services import SimpleTTLCache
 from api.services.analytics import get_company_stats
+from api.services.export import build_company_stats_report, build_report_filename
 from config import Config
 from database.schema.base import (
     ApplicantProfile,
@@ -88,6 +90,33 @@ async def get_company_stats_endpoint(
 ) -> CompanyStatsResponse:
     cache_key = f"company-stats:{user.id}"
     return cache.get_or_set(cache_key, lambda: get_company_stats(db, user.id))
+
+
+@me_router.get("/company/stats/export")
+async def export_company_stats(
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+    cache: SimpleTTLCache[CompanyStatsResponse] = Depends(get_stats_cache),
+    export_format: Literal["xlsx"] = Query(
+        "xlsx", description="Формат выгрузки отчета", alias="format"
+    ),
+) -> Response:
+    if export_format != "xlsx":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported format")
+
+    cache_key = f"company-stats:{user.id}"
+    stats = cache.get_or_set(cache_key, lambda: get_company_stats(db, user.id))
+
+    report_content = build_company_stats_report(stats)
+    filename = build_report_filename("company-stats")
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"',
+    }
+    return Response(
+        content=report_content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers,
+    )
 
 
 @me_router.put("/company/profile", response_model=CompanyProfileResponse)

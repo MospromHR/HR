@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import sqlalchemy as sa
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
+from typing import Literal
 from uuid import UUID
 
 from api.deps import get_config, get_db, get_stats_cache
@@ -12,6 +13,7 @@ from api.schemas.profile import EducationProfileResponse, EducationProfileUpdate
 from api.schemas.user import RoleResponse
 from api.services import SimpleTTLCache
 from api.services.analytics import get_education_stats
+from api.services.export import build_education_stats_report, build_report_filename
 from config import Config
 from database.schema.base import EducationProfile, User, UserRole
 
@@ -50,6 +52,34 @@ async def get_education_stats_endpoint(
 ) -> EducationStatsResponse:
     cache_key = f"education-stats:{user.id}"
     return cache.get_or_set(cache_key, lambda: get_education_stats(db, user.id))
+
+
+@router.get("/education/stats/export")
+async def export_education_stats(
+    user: User = Depends(require_role(UserRole.EDUCATION)),
+    db: Session = Depends(get_db),
+    cache: SimpleTTLCache[EducationStatsResponse] = Depends(get_stats_cache),
+    export_format: Literal["xlsx"] = Query(
+        "xlsx", description="Формат выгрузки отчета", alias="format"
+    ),
+) -> Response:
+    if export_format != "xlsx":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported format")
+
+    cache_key = f"education-stats:{user.id}"
+    stats = cache.get_or_set(cache_key, lambda: get_education_stats(db, user.id))
+
+    report_content = build_education_stats_report(stats)
+    filename = build_report_filename("education-stats")
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"',
+    }
+
+    return Response(
+        content=report_content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers,
+    )
 
 
 @router.put("/education/profile", response_model=EducationProfileResponse)

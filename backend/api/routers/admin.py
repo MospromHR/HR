@@ -5,7 +5,7 @@ from typing import Literal
 from uuid import UUID
 
 import sqlalchemy as sa
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from api.deps import get_db, get_stats_cache
@@ -14,6 +14,7 @@ from api.schemas.analytics import AdminStatsResponse
 from api.schemas.user import UserResponse, UserUpdateRequest
 from api.services import SimpleTTLCache
 from api.services.analytics import get_admin_stats
+from api.services.export import build_admin_stats_report, build_report_filename
 from database.schema.base import User, UserRole
 
 
@@ -27,6 +28,32 @@ async def get_admin_stats_endpoint(
     cache: SimpleTTLCache[AdminStatsResponse] = Depends(get_stats_cache),
 ) -> AdminStatsResponse:
     return cache.get_or_set("admin-stats", lambda: get_admin_stats(db))
+
+
+@router.get("/stats/export")
+async def export_admin_stats(
+    _: User = Depends(get_current_superuser),
+    db: Session = Depends(get_db),
+    cache: SimpleTTLCache[AdminStatsResponse] = Depends(get_stats_cache),
+    export_format: Literal["xlsx"] = Query(
+        "xlsx", description="Формат выгрузки отчета", alias="format"
+    ),
+) -> Response:
+    if export_format != "xlsx":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported format")
+
+    stats = cache.get_or_set("admin-stats", lambda: get_admin_stats(db))
+    report_content = build_admin_stats_report(stats)
+    filename = build_report_filename("admin-stats")
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"',
+    }
+
+    return Response(
+        content=report_content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers=headers,
+    )
 
 
 @router.get("/users", response_model=list[UserResponse])
