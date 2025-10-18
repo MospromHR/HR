@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import secrets
-import string
+from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
@@ -14,8 +14,10 @@ from api.deps import get_db
 from api.deps.auth import require_role
 from api.schemas.internships import (
     EducationInternshipCreate,
+    EducationInternshipListResponse,
     EducationInternshipResponse,
     EducationInternshipUpdate,
+    EducationInternshipWithParticipantsResponse,
     InternshipCodeGenerateRequest,
     InternshipCodeResponse,
     InternshipParticipantResponse,
@@ -27,6 +29,8 @@ from database.schema.base import (
     EducationInternship,
     EducationInternshipCode,
     EducationInternshipMember,
+    EducationInternshipStatus,
+    InternshipParticipantStatus,
     User,
     UserRole,
 )
@@ -37,6 +41,7 @@ CODE_LENGTH = 10
 
 
 router = APIRouter(prefix="/me/education/internships", tags=["Education Internships"])
+company_internships_router = APIRouter(prefix="/company/internships", tags=["Company Internships"])
 
 
 def _get_internship(db: Session, user_id: UUID, internship_id: UUID) -> EducationInternship:
@@ -62,10 +67,27 @@ def _validate_dates(start_date: date, end_date: date) -> None:
         )
 
 
-def _serialize_member(db: Session, member: EducationInternshipMember) -> InternshipParticipantResponse:
-    user = db.get(User, member.user_id)
-    profile_stmt = sa.select(ApplicantProfile).where(ApplicantProfile.user_id == member.user_id)
-    profile = db.scalar(profile_stmt)
+def _change_internship_status(
+    db: Session, internship: EducationInternship, new_status: EducationInternshipStatus
+) -> EducationInternship:
+    internship.status = new_status
+    db.add(internship)
+    db.commit()
+    db.refresh(internship)
+    return internship
+
+
+def _serialize_member(
+    db: Session,
+    member: EducationInternshipMember,
+    user: User | None = None,
+    profile: ApplicantProfile | None = None,
+) -> InternshipParticipantResponse:
+    resolved_user = user or db.get(User, member.user_id)
+    resolved_profile = profile
+    if resolved_profile is None:
+        profile_stmt = sa.select(ApplicantProfile).where(ApplicantProfile.user_id == member.user_id)
+        resolved_profile = db.scalar(profile_stmt)
     return InternshipParticipantResponse(
         id=member.id,
         internship_id=member.internship_id,
@@ -73,8 +95,8 @@ def _serialize_member(db: Session, member: EducationInternshipMember) -> Interns
         status=member.status,
         created_at=member.created_at,
         updated_at=member.updated_at,
-        email=user.email if user else "",
-        profile=ApplicantProfileResponse.model_validate(profile) if profile else None,
+        email=resolved_user.email if resolved_user else "",
+        profile=ApplicantProfileResponse.model_validate(resolved_profile) if resolved_profile else None,
     )
 
 
@@ -136,6 +158,38 @@ async def update_internship(
     db.commit()
     db.refresh(internship)
     return EducationInternshipResponse.model_validate(internship)
+
+
+@router.post("/{internship_id}/publish", response_model=EducationInternshipResponse)
+async def publish_internship(
+    internship_id: UUID,
+    user: User = Depends(require_role(UserRole.EDUCATION)),
+    db: Session = Depends(get_db),
+) -> EducationInternshipResponse:
+    internship = _get_internship(db, user.id, internship_id)
+    if internship.status != EducationInternshipStatus.DRAFT:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only draft internships can be published",
+        )
+    updated = _change_internship_status(db, internship, EducationInternshipStatus.PUBLISHED)
+    return EducationInternshipResponse.model_validate(updated)
+
+
+@router.post("/{internship_id}/hide", response_model=EducationInternshipResponse)
+async def hide_internship(
+    internship_id: UUID,
+    user: User = Depends(require_role(UserRole.EDUCATION)),
+    db: Session = Depends(get_db),
+) -> EducationInternshipResponse:
+    internship = _get_internship(db, user.id, internship_id)
+    if internship.status != EducationInternshipStatus.PUBLISHED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only published internships can be hidden",
+        )
+    updated = _change_internship_status(db, internship, EducationInternshipStatus.DRAFT)
+    return EducationInternshipResponse.model_validate(updated)
 
 
 @router.delete("/{internship_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -291,4 +345,179 @@ async def update_participant(
     db.commit()
     db.refresh(member)
     return _serialize_member(db, member)
+
+
+def _resolve_status_filter(status: str | None) -> EducationInternshipStatus | None:
+    if status is None:
+        return None
+    try:
+        resolved = EducationInternshipStatus(status)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid status") from exc
+    if resolved == EducationInternshipStatus.DRAFT:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Draft internships are not accessible")
+    return resolved
+
+
+def _build_sort_clause(
+    sort_by: str,
+    sort_order: str,
+    allowed_columns: dict[str, sa.ColumnElement],
+) -> sa.ColumnElement:
+    column = allowed_columns.get(sort_by)
+    if column is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid sort field")
+
+    normalized_order = sort_order.lower()
+    if normalized_order not in {"asc", "desc"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid sort order")
+
+    return column.asc() if normalized_order == "asc" else column.desc()
+
+
+def _internship_filters(
+    education_id: UUID | None,
+    status: EducationInternshipStatus | None,
+    posted_from: datetime | None,
+    posted_to: datetime | None,
+    search: str | None,
+) -> list[sa.ColumnElement[bool]]:
+    conditions: list[sa.ColumnElement[bool]] = []
+
+    if status is None:
+        conditions.append(EducationInternship.status == EducationInternshipStatus.PUBLISHED)
+    else:
+        conditions.append(EducationInternship.status == status)
+
+    if education_id is not None:
+        conditions.append(EducationInternship.user_id == education_id)
+    if posted_from is not None:
+        conditions.append(EducationInternship.created_at >= posted_from)
+    if posted_to is not None:
+        conditions.append(EducationInternship.created_at <= posted_to)
+    if search:
+        conditions.append(EducationInternship.title.ilike(f"%{search}%"))
+
+    return conditions
+
+
+@company_internships_router.get("", response_model=EducationInternshipListResponse)
+async def list_company_internships(
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    status: str | None = Query(None, description="Filter internships by status"),
+    education_id: UUID | None = Query(None, description="Filter internships by education identifier"),
+    posted_from: datetime | None = Query(None, description="Filter internships created after this date"),
+    posted_to: datetime | None = Query(None, description="Filter internships created before this date"),
+    search: str | None = Query(None, description="Search internships by title"),
+    sort_by: str = Query("created_at", description="Field to sort internships by"),
+    sort_order: str = Query("desc", description="Sort order: asc or desc"),
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+) -> EducationInternshipListResponse:
+    resolved_status = _resolve_status_filter(status)
+
+    conditions = _internship_filters(education_id, resolved_status, posted_from, posted_to, search)
+
+    total_stmt = sa.select(sa.func.count()).select_from(EducationInternship).where(*conditions)
+    total = db.scalar(total_stmt) or 0
+
+    sort_clause = _build_sort_clause(
+        sort_by,
+        sort_order,
+        {
+            "created_at": EducationInternship.created_at,
+            "updated_at": EducationInternship.updated_at,
+            "title": EducationInternship.title,
+            "start_date": EducationInternship.start_date,
+            "end_date": EducationInternship.end_date,
+            "status": EducationInternship.status,
+        },
+    )
+
+    stmt = (
+        sa.select(EducationInternship)
+        .where(*conditions)
+        .order_by(sort_clause)
+        .offset(offset)
+        .limit(limit)
+    )
+    internships = list(db.scalars(stmt).all())
+
+    participants_map: dict[UUID, list[InternshipParticipantResponse]] = defaultdict(list)
+    if internships:
+        internship_ids = [internship.id for internship in internships]
+        participants_stmt = (
+            sa.select(EducationInternshipMember, User, ApplicantProfile)
+            .join(User, User.id == EducationInternshipMember.user_id)
+            .join(
+                ApplicantProfile,
+                ApplicantProfile.user_id == EducationInternshipMember.user_id,
+                isouter=True,
+            )
+            .where(
+                EducationInternshipMember.internship_id.in_(internship_ids),
+                EducationInternshipMember.status == InternshipParticipantStatus.APPROVED,
+            )
+            .order_by(EducationInternshipMember.created_at.desc())
+        )
+        for member, participant_user, profile in db.execute(participants_stmt).all():
+            participants_map[member.internship_id].append(
+                _serialize_member(db, member, participant_user, profile)
+            )
+
+    items = []
+    for internship in internships:
+        base = EducationInternshipResponse.model_validate(internship)
+        items.append(
+            EducationInternshipWithParticipantsResponse(
+                **base.model_dump(),
+                approved_participants=participants_map.get(internship.id, []),
+            )
+        )
+
+    return EducationInternshipListResponse(items=items, total=total, limit=limit, offset=offset)
+
+
+@company_internships_router.get(
+    "/{internship_id}", response_model=EducationInternshipWithParticipantsResponse
+)
+async def get_company_internship(
+    internship_id: UUID,
+    user: User = Depends(require_role(UserRole.COMPANY)),
+    db: Session = Depends(get_db),
+) -> EducationInternshipWithParticipantsResponse:
+    stmt = sa.select(EducationInternship).where(
+        EducationInternship.id == internship_id,
+        EducationInternship.status == EducationInternshipStatus.PUBLISHED,
+    )
+    internship = db.scalar(stmt)
+    if internship is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Internship not found")
+
+    participants_stmt = (
+        sa.select(EducationInternshipMember, User, ApplicantProfile)
+        .join(User, User.id == EducationInternshipMember.user_id)
+        .join(
+            ApplicantProfile,
+            ApplicantProfile.user_id == EducationInternshipMember.user_id,
+            isouter=True,
+        )
+        .where(
+            EducationInternshipMember.internship_id == internship.id,
+            EducationInternshipMember.status == InternshipParticipantStatus.APPROVED,
+        )
+        .order_by(EducationInternshipMember.created_at.desc())
+    )
+
+    participants = [
+        _serialize_member(db, member, participant_user, profile)
+        for member, participant_user, profile in db.execute(participants_stmt).all()
+    ]
+
+    base = EducationInternshipResponse.model_validate(internship)
+    return EducationInternshipWithParticipantsResponse(
+        **base.model_dump(),
+        approved_participants=participants,
+    )
 
