@@ -1,9 +1,12 @@
 import {Routes} from '@angular/router';
-import {authGuard} from '../modules/auth/data-access/auth.guard';
+import {authGuard, smartRedirectGuard} from '../modules/auth/data-access/auth.guard';
 import {CreateVacancyComponent} from "../modules/profile/feature/create-vacancy/create-vacancy.component";
 import {
     InternshipApplicationsComponent
 } from "../modules/profile/feature/internship-applications/internship-applications.component";
+import {featureToggleGuard} from "../modules/auth/data-access/feature-toggle.guard";
+import {UserVacanciesComponent} from "../modules/profile/feature/user-vacancies/user-vacancies.component";
+import {AccountComponent} from "../modules/profile/feature/account/account.component";
 
 export const routes: Routes = [
     {
@@ -34,11 +37,26 @@ export const routes: Routes = [
         path: 'profile',
         loadComponent: () => import('../modules/profile/shell/profile/profile.component').then(m => m.ProfileComponent),
         canActivate: [authGuard],
-        //todo перенести либу auth
         children: [
             {
                 path: '',
+                redirectTo: 'internship-applications',
+                pathMatch: 'full'
+            },
+            {
+                path: 'vacancies',
                 loadComponent: () => import('../modules/profile/feature/vacancies/vacancies.component').then(m => m.VacanciesComponent),
+                // canActivate: [featureToggleGuard('company')],
+            },
+
+            {
+                path: 'account',
+                loadComponent: () => import('../modules/profile/feature/account/account.component').then(m => m.AccountComponent),
+                // canActivate: [featureToggleGuard('company')],
+            },
+            {
+                path: 'list',
+                loadComponent: () => import('../modules/profile/feature/user-vacancies/user-vacancies.component').then(m => m.UserVacanciesComponent),
             },
 
             {
@@ -48,6 +66,7 @@ export const routes: Routes = [
             {
                 path: 'internship-applications',
                 loadComponent: () => import('../modules/profile/feature/internship-applications/internship-applications.component').then(m => m.InternshipApplicationsComponent),
+                // canActivate: [featureToggleGuard('education')],
             },
             {
                 path: 'create-internship',

@@ -1,8 +1,11 @@
 <div class="wrapper">
     <div class="logo"></div>
     <div class="nav">
+        <div class="link" *roleFeatureToggle="'applicant'">
+            <span routerLink="/profile/account">Профиль</span>
+        </div>
         <div class="link">
-            <span routerLink="/profile">Вакансии</span>
+            <span routerLink="/profile/vacations-list">Вакансии</span>
         </div>
         <div class="link">
             <span>Стажировки</span>

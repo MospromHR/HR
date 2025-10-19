@@ -2,7 +2,7 @@ import {Injectable} from "@angular/core";
 import {HttpClient} from "@angular/common/http";
 import {map, Observable, switchMap, tap} from "rxjs";
 import {http} from "../../../data-access/api.const";
-import {ApiEducationInternship, ApiInternship} from "../../../data-access/api.interfaces";
+import {ApiEducationInternship, ApiPayloadInternship} from "../../../data-access/api.interfaces";
 import {InternshipCell} from "../feature/table/interfaces";
 
 @Injectable()
@@ -25,7 +25,7 @@ export class InternshipService {
             )
     }
 
-    postEducationInternships(data: ApiInternship): Observable<boolean> {
+    postEducationInternships(data: ApiPayloadInternship): Observable<boolean> {
         return this.httpClient.post<boolean>(`${http}/api/v1/me/education/internships`, data).pipe(map(() => true))
     }
 

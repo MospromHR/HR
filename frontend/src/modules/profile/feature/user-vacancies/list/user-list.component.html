@@ -1,0 +1,19 @@
+<div class="wrapper">
+    @for (item of list(); track item) {
+        <profile-list-item class="list-item"
+                           [header]="item.title"
+                           [viewQuantity]="item.views"
+                           [responsesQuantity]="item.responses"
+                           [conversionPercentage]="item.conversion"
+        ></profile-list-item>
+    } @empty {
+        <div class="empty">
+            <div class="star-circle">
+                <div class="star"></div>
+            </div>
+            <div class="text">
+                    <h2>У вас пока нет откликов</h2>
+            </div>
+        </div>
+    }
+</div>

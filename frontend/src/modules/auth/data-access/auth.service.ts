@@ -8,6 +8,7 @@ interface AuthResponse {
     access_token: string;
     refresh_token: string;
     token_type: string;
+    role: Role;
 }
 
 
@@ -30,12 +31,13 @@ export class AuthService {
         }
     }
 
-    login(email: string, password: string): Observable<void> {
+    login(email: string, password: string): Observable<Role> {
         return this.httpClient.post<AuthResponse>(`${http}/api/v1/auth/login`, {
             email,
             password
         }).pipe(map((response) => {
             this.setTokens(response)
+            return response.role
         }))
     }
 

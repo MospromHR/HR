@@ -23,9 +23,7 @@ export const MeStore = signalStore(
                 pipe(
                     switchMap(() =>
                         meService.getProfile().pipe(
-                            tap((me) => {
-                                patchState(store, {me})
-                            })
+                            tap((me) => patchState(store, {me: me}))
                         ))
                 )
             )

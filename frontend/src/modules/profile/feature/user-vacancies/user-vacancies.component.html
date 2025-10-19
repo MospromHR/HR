@@ -1,0 +1,12 @@
+<div class="wrapper">
+    <div class="container">
+        <div class="nav">
+            <profile-button title="Все" [isActive]="true"></profile-button>
+            <profile-button title="Успшные"></profile-button>
+            <profile-button title="Отклоненные"></profile-button>
+            <profile-button title="Архив"></profile-button>
+        </div>
+
+    </div>
+    <profile-user-list [key]="selectedKey()"></profile-user-list>
+</div>
