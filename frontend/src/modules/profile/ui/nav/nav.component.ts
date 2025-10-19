@@ -1,11 +1,13 @@
 import {Component} from '@angular/core';
 import {Router, RouterLink} from "@angular/router";
 import {AuthService} from "../../../auth/data-access/auth.service";
+import {FeatureToggleDirective} from "../../../../utils/feature-toggle.directive";
 
 @Component({
     selector: 'profile-nav',
     imports: [
-        RouterLink
+        RouterLink,
+        FeatureToggleDirective
     ],
     templateUrl: './nav.component.html',
     styleUrl: './nav.component.less'

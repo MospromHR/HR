@@ -5,6 +5,8 @@ import {
     InternshipApplicationsComponent
 } from "../modules/profile/feature/internship-applications/internship-applications.component";
 import {featureToggleGuard} from "../modules/auth/data-access/feature-toggle.guard";
+import {UserVacanciesComponent} from "../modules/profile/feature/user-vacancies/user-vacancies.component";
+import {AccountComponent} from "../modules/profile/feature/account/account.component";
 
 export const routes: Routes = [
     {
@@ -44,11 +46,17 @@ export const routes: Routes = [
             {
                 path: 'vacancies',
                 loadComponent: () => import('../modules/profile/feature/vacancies/vacancies.component').then(m => m.VacanciesComponent),
-                canActivate: [featureToggleGuard('company')],
+                // canActivate: [featureToggleGuard('company')],
+            },
+
+            {
+                path: 'account',
+                loadComponent: () => import('../modules/profile/feature/account/account.component').then(m => m.AccountComponent),
+                // canActivate: [featureToggleGuard('company')],
             },
             {
                 path: 'list',
-                loadComponent: () => import('../modules/profile/feature/vacancies/vacancies.component').then(m => m.VacanciesComponent),
+                loadComponent: () => import('../modules/profile/feature/user-vacancies/user-vacancies.component').then(m => m.UserVacanciesComponent),
             },
 
             {
@@ -58,7 +66,7 @@ export const routes: Routes = [
             {
                 path: 'internship-applications',
                 loadComponent: () => import('../modules/profile/feature/internship-applications/internship-applications.component').then(m => m.InternshipApplicationsComponent),
-                canActivate: [featureToggleGuard('education')],
+                // canActivate: [featureToggleGuard('education')],
             },
             {
                 path: 'create-internship',

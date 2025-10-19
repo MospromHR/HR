@@ -1,7 +1,30 @@
-import {Component} from '@angular/core';
+import {Component, DestroyRef} from '@angular/core';
 import {FormControl, FormGroup, ReactiveFormsModule, Validators} from "@angular/forms";
 import {TuiInputModule} from "@taiga-ui/legacy";
 import {Router} from "@angular/router";
+import {VacancyService} from "../../data-access/vacancy.service";
+import {takeUntilDestroyed} from "@angular/core/rxjs-interop";
+
+
+interface FormData {
+    vacancyName: string,
+    logo: string
+    companyName: string,
+    site: string,
+    speciality: string,
+    responsibilities: string,
+    requirements: string,
+    terms: string,
+    workSchedule: string,
+    workPlace: string,
+    map: string,
+    probation: string,
+    salary: string,
+    additionally: string,
+    aboutCompany: string,
+    companyLink: string,
+    task: string,
+}
 
 @Component({
     selector: 'profile-create-vacancy',
@@ -9,6 +32,7 @@ import {Router} from "@angular/router";
         ReactiveFormsModule,
         TuiInputModule
     ],
+    providers: [VacancyService],
     templateUrl: './create-vacancy.component.html',
     styleUrl: './create-vacancy.component.less'
 })
@@ -36,10 +60,45 @@ export class CreateVacancyComponent {
         task: new FormControl('',),
     })
 
-    constructor(private router: Router) {
+    constructor(private router: Router,
+                private vacancyService: VacancyService,
+                private destroyRef: DestroyRef) {
     }
 
-    send():void{
-        this.router.navigate(['/profile']).then();
+    send(): void {
+        const {
+            vacancyName,
+            speciality,
+            responsibilities,
+            requirements,
+            terms,
+            workSchedule,
+            workPlace,
+            map,
+            probation,
+            salary,
+            additionally,
+            task
+        } = this.form.value as FormData;
+        const data = {
+            vacancyName,
+            speciality,
+            responsibilities,
+            requirements,
+            terms,
+            workSchedule,
+            workPlace,
+            map,
+            probation,
+            salary,
+            additionally,
+            task
+        }
+        this.vacancyService.postCompanyVacancies(data).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(
+            ()=>{
+                this.router.navigate(['/profile/vacancies']).then();
+            }
+        )
+
     }
 }

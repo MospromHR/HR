@@ -17,23 +17,46 @@ export interface ApiEducationInternship {
     updated_at: string
     status: 'draft' | 'published'
 }
-//{
-//     "title": "23",
-//     "speciality_code": "23",
-//     "start_date": "2025-10-11",
-//     "end_date": "2025-11-19",
-//     "capacity": 1,
-//     "type": "23",
-//     "course": 1,
-//     "description": "23",
-//     "id": "5384c9c0-5c3b-49e0-a54a-2f76531a3296",
-//     "user_id": "fcbbc932-1474-4674-ac0d-5f67a8b19da8",
-//     "status": "draft",
-//     "created_at": "2025-10-18T20:22:13.786446Z",
-//     "updated_at": "2025-10-18T20:22:13.786446Z"
-// }
 
-export interface ApiInternship {
+export interface ApiPayloadVacancies {
+    vacancyName: string,
+    speciality: string,
+    responsibilities: string,
+    requirements: string,
+    terms: string,
+    workSchedule: string,
+    workPlace: string,
+    map: string,
+    probation: string,
+    salary: string,
+    additionally: string,
+    task: string
+}
+export interface ApiVacancies{
+    items: Vacancies[]
+}
+export interface Vacancies {
+    vacancyName: string,
+    speciality: string,
+    applicationsCount: number,
+    responsibilities: string,
+    requirements: string,
+    terms: string,
+    workSchedule: string,
+    workPlace: string,
+    map: string,
+    probation: string,
+    salary: string,
+    additionally: string,
+    task: string,
+    id: string,
+    companyId: string,
+    status:string,
+    createdAt: string,
+    updatedAt:string,
+}
+
+export interface ApiPayloadInternship {
     title: string,
     speciality_code: string,
     start_date: string,
